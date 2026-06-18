@@ -1,5 +1,6 @@
-import { Dashboard } from "@/components/Dashboard";
+"use client";
+import ADODashboard from "@/components/ADODashboard";
 
 export default function Home() {
-  return <Dashboard />;
+  return <ADODashboard />;
 }
