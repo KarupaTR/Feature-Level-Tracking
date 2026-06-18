@@ -188,11 +188,11 @@ function AreaPathBreakdown({ summaries, accent }: { summaries: AreaPathSummary[]
           return (
             <div key={s.areaPath}>
               {/* Area path row */}
-              <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
-                <button onClick={() => setExpandedAP(isOpen ? null : s.areaPath)}
-                  className="flex items-center gap-1 text-slate-400 hover:text-slate-600 shrink-0">
+              <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer"
+                onClick={() => setExpandedAP(isOpen ? null : s.areaPath)}>
+                <div className="flex items-center gap-1 text-slate-400 shrink-0">
                   {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                </button>
+                </div>
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: accent }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
@@ -202,7 +202,7 @@ function AreaPathBreakdown({ summaries, accent }: { summaries: AreaPathSummary[]
                   <MiniBar pct={pct} color={accent} />
                 </div>
                 {/* Clickable count chips */}
-                <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                <div className="flex items-center gap-1.5 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => openDrawer(apDrawerKey, s.stories, `All stories — ${s.leafName}`)}
                     className="text-[10px] font-semibold px-2 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors border border-slate-200">
                     {counts.total} total
@@ -517,8 +517,8 @@ function InitiativePanel({ initiative, accent, mode, onPin, onRemove, isPinned }
 
   return (
     <div className={`rounded-2xl border shadow-sm overflow-hidden mb-5 ${mode === "search" ? "border-amber-200 bg-amber-50/20" : "border-slate-200 bg-white"}`}>
-      <div className="px-5 py-4 border-b border-slate-100 bg-white">
-        <div className="flex items-start gap-3">
+      <div className="px-5 py-4 border-b border-slate-100 bg-white hover:bg-slate-50/50 transition-colors" style={{cursor:'pointer'}}>
+        <div className="flex items-start gap-3" onClick={() => setCollapsed((c) => !c)} style={{cursor:'pointer'}}>
           <Layers size={16} className="mt-0.5 shrink-0" style={{ color: accent }} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -535,7 +535,7 @@ function InitiativePanel({ initiative, accent, mode, onPin, onRemove, isPinned }
               {initiative.piReleaseDate && <span className="text-xs text-orange-500 font-medium">📅 PI: {fmtDate(initiative.piReleaseDate)}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0 ml-2">
+          <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
             {mode === "search" && !isPinned && onPin && (
               <button onClick={onPin} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-medium transition-colors">
                 <Pin size={12} />Pin
