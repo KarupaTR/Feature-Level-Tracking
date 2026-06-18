@@ -3,6 +3,7 @@ name: Deploy to Vercel (Product Enterprise)
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
