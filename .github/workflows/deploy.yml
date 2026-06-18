@@ -1,0 +1,30 @@
+name: Deploy to Vercel (Product Enterprise)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Write ADO PATs (baked into Next.js bundle at build time)
+        run: |
+          echo "NEXT_PUBLIC_ADO_PAT_TR_TAX=${{ secrets.ADO_PAT_TR_TAX }}" >> .env.production
+          echo "NEXT_PUBLIC_ADO_PAT_TR_TAX_DEFAULT=${{ secrets.ADO_PAT_TR_TAX_DEFAULT }}" >> .env.production
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Vercel (Product Enterprise - product-design-tr)
+        run: npx vercel --yes --prod --scope=product-design-tr --token=${{ secrets.VERCEL_TOKEN }}
