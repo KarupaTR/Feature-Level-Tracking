@@ -387,8 +387,8 @@ function AreaPathBreakdown({ summaries, accent }: { summaries: AreaPathSummary[]
 function StoryRow({ story }: { story: UserStory }) {
   const tp = TYPE_PILL[story.workItemType] || "bg-gray-50 text-gray-500 border border-gray-100";
   return (
-    <tr className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors group text-xs">
-      <td className="px-3 py-2 w-14">
+    <tr className="border-b border-green-50 hover:bg-green-50 transition-colors group text-xs bg-white">
+      <td className="px-3 py-2 w-14 pl-8">
         <a href={story.url} target="_blank" rel="noopener noreferrer"
           className="font-mono text-blue-500 hover:underline flex items-center gap-0.5">
           #{story.id}<ExternalLink size={8} className="opacity-0 group-hover:opacity-60" />
@@ -431,17 +431,17 @@ function FeatureCard({ feature, accent }: { feature: FeatureDetail; accent: stri
   });
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors select-none"
+    <div className="border border-green-200 rounded-xl overflow-hidden bg-white shadow-sm border-l-[3px] border-l-green-500">
+      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-green-50/50 transition-colors select-none"
         onClick={() => setExpanded((e) => !e)}>
         <div className="w-0.5 h-8 rounded-full shrink-0" style={{ background: accent }} />
         <GitBranch size={13} style={{ color: accent }} className="shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <a href={feature.url} target="_blank" rel="noopener noreferrer"
-              className="text-[11px] font-mono text-blue-400 hover:underline shrink-0"
+              className="text-[10px] font-mono text-green-600 hover:underline shrink-0"
               onClick={(e) => e.stopPropagation()}>#{feature.id}</a>
-            <span className="text-sm font-semibold text-slate-800 truncate">{feature.title}</span>
+            <span className="text-[12px] font-semibold text-green-800 truncate">{feature.title}</span>
             <StatePill state={feature.state} />
           </div>
           <div className="flex items-center gap-3">
@@ -460,7 +460,7 @@ function FeatureCard({ feature, accent }: { feature: FeatureDetail; accent: stri
 
       {expanded && (
         <>
-          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50/80 border-t border-slate-100">
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border-t border-green-100">
             <div className="relative">
               <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" />
               <input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)}
@@ -476,12 +476,12 @@ function FeatureCard({ feature, accent }: { feature: FeatureDetail; accent: stri
           {filtered.length === 0 ? (
             <p className="text-xs text-slate-400 px-4 py-5 text-center">No stories match.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-green-50/30">
               <table className="w-full min-w-[820px]">
                 <thead>
-                  <tr className="bg-slate-50 border-t border-b border-slate-100">
+                  <tr className="bg-green-100/60 border-t border-b border-green-100">
                     {["ID","Title","Type","State","Area Path","Iteration","Assigned To","PI Release Date"].map((h) => (
-                      <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold text-green-700 uppercase tracking-wide first:pl-8">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -516,7 +516,7 @@ function InitiativePanel({ initiative, accent, mode, onPin, onRemove, isPinned }
   );
 
   return (
-    <div className={`rounded-2xl border shadow-sm overflow-hidden mb-5 ${mode === "search" ? "border-amber-200 bg-amber-50/20" : "border-slate-200 bg-white"}`}>
+    <div className={`rounded-2xl border shadow-sm overflow-hidden mb-5 ${mode === "search" ? "border-amber-200 bg-amber-50/20 border-l-4 border-l-amber-400" : "border-slate-200 bg-white border-l-4 border-l-[#123015]"}`}>
       <div className="px-5 py-4 border-b border-slate-100 bg-white hover:bg-slate-50/50 transition-colors" style={{cursor:'pointer'}}>
         <div className="flex items-start gap-3" onClick={() => setCollapsed((c) => !c)} style={{cursor:'pointer'}}>
           <Layers size={16} className="mt-0.5 shrink-0" style={{ color: accent }} />
@@ -528,7 +528,7 @@ function InitiativePanel({ initiative, accent, mode, onPin, onRemove, isPinned }
               <StatePill state={initiative.state} />
               <span className="text-[10px] text-slate-400">INITIATIVE</span>
             </div>
-            <h2 className="text-base font-bold text-slate-800 leading-snug">{initiative.title}</h2>
+            <h2 className="text-[15px] font-bold text-slate-900 leading-snug">{initiative.title}</h2>
             <div className="flex flex-wrap items-center gap-4 mt-2">
               <div className="w-48"><MiniBar pct={pct} color={accent} /></div>
               {initiative.assignedTo !== "Unassigned" && <span className="text-xs text-slate-500">👤 {initiative.assignedTo}</span>}
@@ -579,30 +579,33 @@ function InitiativePanel({ initiative, accent, mode, onPin, onRemove, isPinned }
             ))}
           </div>
 
-          <div className="px-5 py-4">
-            {tab === "features" && (
-              <>
-                {initiative.features.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-6">No features found under this initiative.</p>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="relative">
-                        <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" />
-                        <input placeholder="Filter features…" value={featureSearch} onChange={(e) => setFeatureSearch(e.target.value)}
-                          className="pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 w-52" />
-                      </div>
-                      {featureSearch && <span className="text-[10px] text-slate-400">{filteredFeatures.length} / {initiative.features.length}</span>}
+          {tab === "features" && (
+            <>
+              {initiative.features.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">No features found under this initiative.</p>
+              ) : (
+                <div className="bg-green-50 border-t border-green-100">
+                  <div className="flex items-center gap-2 px-5 py-3 border-b border-green-100">
+                    <div className="relative">
+                      <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input placeholder="Filter features…" value={featureSearch} onChange={(e) => setFeatureSearch(e.target.value)}
+                        className="pl-7 pr-3 py-1.5 text-xs border border-green-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-green-400 w-52" />
                     </div>
-                    <div className="space-y-2.5">
-                      {filteredFeatures.map((f) => <FeatureCard key={f.id} feature={f} accent={accent} />)}
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-            {tab === "areapaths" && <AreaPathBreakdown summaries={areaSummaries} accent={accent} />}
-          </div>
+                    {featureSearch && <span className="text-[10px] text-slate-400">{filteredFeatures.length} / {initiative.features.length}</span>}
+                    <span className="ml-auto text-[10px] text-green-600 font-medium">{initiative.features.length} features</span>
+                  </div>
+                  <div className="px-4 py-3 space-y-2">
+                    {filteredFeatures.map((f) => <FeatureCard key={f.id} feature={f} accent={accent} />)}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {tab === "areapaths" && (
+            <div className="px-5 py-4">
+              <AreaPathBreakdown summaries={areaSummaries} accent={accent} />
+            </div>
+          )}
         </>
       )}
     </div>
