@@ -459,6 +459,63 @@ function buildStoryTable(storyList){
     '<tbody>'+rows+'</tbody></table></div>';
 }
 
+function showIterStories(evt, stories, apPath, iter, stateFilter){
+  evt.stopPropagation();
+  function cls(s){if(['Closed','Resolved'].indexOf(s)>-1)return 'closed';if(s==='Active')return 'active';if(s==='Ready')return 'ready';return 'new';}
+  // Filter stories
+  var filtered=stories.filter(function(s){
+    var sap=s.fields['System.AreaPath']||'';
+    var matchAP=sap===apPath||sap.split('\\').pop()===apPath.split('\\').pop();
+    var siter=(s.fields['System.IterationPath']||'').split('\\').slice(-2).join('\\');
+    var matchIter=siter===iter;
+    var matchState=!stateFilter||cls(s.fields['System.State'])===stateFilter;
+    return matchAP&&matchIter&&matchState;
+  });
+  if(!filtered.length){alert('No stories found for this filter.');return;}
+
+  // Build modal
+  var ex=document.getElementById('story-modal');if(ex)ex.remove();
+  var modal=document.createElement('div');
+  modal.id='story-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
+  var stateColors={Active:'#eff6ff',Ready:'#f5f3ff',New:'#f8fafc',Closed:'#f0fdf4',Resolved:'#f0fdf4'};
+  var rows=filtered.map(function(s){
+    var sf=s.fields;
+    var st=sf['System.State']||'';
+    var stBg=stateColors[st]||'#f8fafc';
+    var assigned=typeof sf['System.AssignedTo']==='object'?(sf['System.AssignedTo'].displayName||'—'):(sf['System.AssignedTo']||'—');
+    var rd=sf['Custom.PI_ReleaseDate'];
+    var rdStr=rd?new Date(rd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+    return '<tr style="border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="window.open(\'https://dev.azure.com/tr-tax/TaxProf/_workitems/edit/'+s.id+'\',\'_blank\')">'+
+      '<td style="padding:8px 12px;font-size:10px;font-family:monospace;color:#3b82f6;white-space:nowrap">#'+s.id+'</td>'+
+      '<td style="padding:8px 12px;font-size:11px;color:#334155;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+sf['System.Title'].replace(/"/g,'')+'">'+sf['System.Title']+'</td>'+
+      '<td style="padding:8px 12px"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+stBg+';color:#334155">'+st+'</span></td>'+
+      '<td style="padding:8px 12px;font-size:10px;color:#64748b;white-space:nowrap">'+assigned+'</td>'+
+      '<td style="padding:8px 12px;font-size:10px;color:#64748b;white-space:nowrap">'+rdStr+'</td>'+
+    '</tr>';
+  }).join('');
+
+  var title=iter+(stateFilter?' — '+stateFilter.charAt(0).toUpperCase()+stateFilter.slice(1):'');
+  modal.innerHTML='<div style="background:#fff;border-radius:14px;width:900px;max-width:95vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.15)">'+
+    '<div style="padding:14px 20px;background:#123015;display:flex;align-items:center;gap:8px;flex-shrink:0">'+
+      '<span style="font-size:13px;font-weight:700;color:#fff;flex:1">'+title+' <span style="font-size:11px;opacity:.7">('+filtered.length+' stories)</span></span>'+
+      '<button onclick="document.getElementById(\'story-modal\').remove()" style="background:none;border:none;color:#4ade80;font-size:18px;cursor:pointer;line-height:1">&times;</button>'+
+    '</div>'+
+    '<div style="overflow-y:auto;flex:1">'+
+    '<table style="width:100%;border-collapse:collapse">'+
+    '<thead><tr style="background:#f8fafc;position:sticky;top:0">'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;white-space:nowrap">ID</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b">Title</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b">State</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;white-space:nowrap">Assigned To</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;white-space:nowrap">Release Date</th>'+
+    '</tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>'+
+  '</div>';
+  modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  document.body.appendChild(modal);
+}
+
 function buildIterTable(allStories, ap){
   // Filter stories for this area path
   var apStories=allStories.filter(function(s){
@@ -483,11 +540,11 @@ function buildIterTable(allStories, ap){
     var pct=it.total?Math.round(it.closed/it.total*100):0;
     return '<tr>'+
       '<td style="text-align:left;font-weight:600;color:#334155;font-size:10px;padding:7px 12px">'+it.iter+'</td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="cursor:pointer;padding:2px 6px;border-radius:4px">'+it.total+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:#16a34a;font-weight:700'+(it.closed?'':';color:#e2e8f0')+'">'+it.closed+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:#2563eb;font-weight:700'+(it.active?'':';color:#e2e8f0')+'">'+it.active+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:#64748b'+(it.newCount?'':';color:#e2e8f0')+'">'+it.newCount+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:#7c3aed;font-weight:700'+(it.ready?'':';color:#e2e8f0')+'">'+it.ready+'</span></td>'+
+      '<td style="text-align:center;padding:7px 12px"><span style="cursor:pointer;padding:2px 6px;border-radius:4px;color:#334155" onclick="showIterStories(event,allStories,ap.fullPath,it.iter,null)">'+it.total+'</span></td>'+
+      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.closed?'#16a34a':'#94a3b8')+';cursor:'+(it.closed?'pointer':'default')+'" '+(it.closed?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'closed\')">':'>"+')+it.closed+'</span></td>'+
+      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.active?'#2563eb':'#94a3b8')+';cursor:'+(it.active?'pointer':'default')+'" '+(it.active?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'active\')">':'>"+')+it.active+'</span></td>'+
+      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.newCount?'#475569':'#94a3b8')+';cursor:'+(it.newCount?'pointer':'default')+'" '+(it.newCount?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'new\')">':'>"+')+it.newCount+'</span></td>'+
+      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.ready?'#7c3aed':'#94a3b8')+';cursor:'+(it.ready?'pointer':'default')+'" '+(it.ready?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'ready\')">':'>"+')+it.ready+'</span></td>'+
       '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+pct+'%"></div></div></td>'+
     '</tr>';
   }).join('');
@@ -606,7 +663,7 @@ function renderLiveCard(data,conn,cat,cardId,mode){
     }
     return '<div class="feat-card"><div class="feat-header" onclick="toggleFeatEl(this)">'+
       '<span style="font-size:12px;color:#16a34a;flex-shrink:0">\u2442</span>'+
-      '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#'+f.id+'</span><span class="feat-title">'+f.fields['System.Title']+'</span></div>'+
+      '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><a class="feat-id" href="https://dev.azure.com/tr-tax/TaxProf/_workitems/edit/'+f.id+'" target="_blank" onclick="event.stopPropagation()" style="color:#3b82f6;text-decoration:none">#'+f.id+'</a><span class="feat-title">'+f.fields['System.Title']+'</span></div>'+
       '<div class="feat-meta">'+
         '<div class="prog-row"><div class="pbar" style="width:60px"><div class="pfill" style="width:'+fpct+'%;background:#16a34a"></div></div><span class="pct" style="color:#86efac">'+fpct+'%</span></div>'+
         '<span class="feat-meta-text">'+fsc.closed+'/'+fsc.total+' closed</span>'+
