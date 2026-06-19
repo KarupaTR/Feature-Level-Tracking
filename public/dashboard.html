@@ -830,7 +830,7 @@ function selectCat(btn){
 
 function doPin(id,title){
   var pb=document.getElementById('do-pin-btn');
-  var cat=pb.dataset.cat;
+  var cat=pb&&pb.dataset.cat?pb.dataset.cat:null;
   var cg=document.getElementById('conn-grid');
   var conn=cg&&cg.dataset.selected?cg.dataset.selected:currentConnector;
   var catLabels={'sureprep':'SurePrep API','cch':'TSI-CCH','ultratax':'TSI-UltraTax','gosystem':'TSI-GoSystem','lacerte':'TSI-Lacerte'};
@@ -838,34 +838,62 @@ function doPin(id,title){
   if(!cat){alert('Please select a category');return;}
   document.getElementById('pin-modal').remove();
 
-  var newCard=document.createElement('div');
-  newCard.className='init-card';
-  newCard.dataset.connector=conn;newCard.dataset.category=cat;
-  newCard.dataset.stories='0';newCard.dataset.closed='0';newCard.dataset.active='0';newCard.dataset.newcount='0';newCard.dataset.ready='0';
-  newCard.style.borderLeftColor=connColors[conn]||'#123015';
-  newCard.style.display=conn===currentConnector&&(currentCat==='all'||currentCat===cat)?'block':'none';
+  // If a card for this ID already exists, just update its connector+category tags
+  var existing=Array.from(document.querySelectorAll('.init-card')).find(function(c){
+    var idEl=c.querySelector('.init-id');
+    return idEl&&idEl.textContent.trim()==='#'+id;
+  });
+  if(existing){
+    existing.dataset.connector=conn;
+    existing.dataset.category=cat;
+    existing.style.borderLeftColor=connColors[conn]||'#123015';
+    var tags=existing.querySelector('.init-tags');
+    if(tags){
+      tags.querySelectorAll('.tag-dyn').forEach(function(t){t.remove()});
+      var t1=document.createElement('span');t1.className='tag tag-dyn';
+      t1.style.cssText='background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd';t1.textContent=CONNS[conn];tags.appendChild(t1);
+      var t2=document.createElement('span');t2.className='tag tag-dyn';
+      t2.style.cssText='background:#f0fdf4;color:#166534;border:1px solid #bbf7d0';t2.textContent=catLabels[cat];tags.appendChild(t2);
+    }
+  } else {
+    // New initiative not in list yet
+    var newCard=document.createElement('div');
+    newCard.className='init-card';
+    newCard.dataset.connector=conn;newCard.dataset.category=cat;
+    newCard.dataset.stories='0';newCard.dataset.closed='0';newCard.dataset.active='0';newCard.dataset.newcount='0';newCard.dataset.ready='0';
+    newCard.style.borderLeftColor=connColors[conn]||'#123015';
+    newCard.innerHTML='<div class="init-header" onclick="toggleInitEl(this)">'+
+      '<div class="init-header-left">'+
+        '<div class="init-tags"><span class="tag tag-pin">&#128204; Pinned</span><span class="init-id">#'+id+'</span>'+
+          '<span class="tag tag-dyn" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">'+CONNS[conn]+'</span>'+
+          '<span class="tag tag-dyn" style="background:#f0fdf4;color:#166634;border:1px solid #bbf7d0">'+catLabels[cat]+'</span>'+
+        '</div>'+
+        '<div class="init-title">#'+id+' \u2014 will load real data from ADO on deploy</div>'+
+        '<div class="init-subrow"><span class="meta">Connected to ADO in live dashboard</span></div>'+
+      '</div>'+
+      '<div class="init-header-right" onclick="event.stopPropagation()">'+
+        '<button class="ibtn del" onclick="removeCard(this.closest(\'.init-card\'))">&#10005;</button>'+
+      '</div><span class="caret">&#9660;</span></div>';
+    var sra=document.getElementById('search-result-area');
+    var contentEl=document.getElementById('content');
+    if(sra)sra.after(newCard);else contentEl.appendChild(newCard);
+  }
 
-  var connTag='<span class="tag" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">'+CONNS[conn]+'</span>';
-  var catTag='<span class="tag" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">'+catLabels[cat]+'</span>';
-  newCard.innerHTML='<div class="init-header" onclick="toggleInitEl(this)">'+
-    '<div class="init-header-left">'+
-      '<div class="init-tags"><span class="tag tag-pin">&#128204; Pinned</span><span class="init-id">#'+id+'</span>'+connTag+catTag+'</div>'+
-      '<div class="init-title">Initiative #'+id+' — loading from ADO on deploy</div>'+
-      '<div class="init-subrow"><span class="meta">Will load real data when connected to ADO</span></div>'+
-    '</div>'+
-    '<div class="init-header-right" onclick="event.stopPropagation()">'+
-      '<button class="ibtn del" onclick="removeCard(this.closest(\'.init-card\'))">&#10005;</button>'+
-    '</div>'+
-    '<span class="caret">&#9660;</span>'+
-  '</div>';
-
-  // Insert before search-result-area or at start of content
-  var content=document.getElementById('content');
+  // Clear search area
   var sra=document.getElementById('search-result-area');
-  if(sra)sra.after(newCard); else content.insertBefore(newCard,content.firstChild);
+  if(sra)sra.innerHTML='';
+  var sinput=document.getElementById('search-input');
+  if(sinput)sinput.value='';
 
-  rebuildCatCounts();
-  updateStatsBar(currentCat);
+  // Switch to connector+category
+  if(conn!==currentConnector){
+    var sbEl=conn==='tr-tax'?document.getElementById('sb-tr-tax'):document.getElementById('sb-tr-default');
+    if(sbEl)switchConn(conn,sbEl);
+  } else {
+    var catEl=document.getElementById('ctab-'+cat);
+    if(catEl)switchCat(cat,catEl);
+    else{rebuildCatCounts();updateStatsBar(currentCat);}
+  }
 
   var toast=document.createElement('div');
   toast.style.cssText='position:fixed;bottom:20px;right:20px;background:#123015;color:#fff;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.2)';
@@ -885,9 +913,11 @@ function openDrawer(s){
 function closeDrawer(){document.getElementById('drawer-overlay').className='drawer-overlay'}
 
 document.addEventListener('DOMContentLoaded',function(){
-  // Init: hide cards not matching current connector
+  // Ensure all pre-existing cards have connector set
   document.querySelectorAll('.init-card').forEach(function(card){
     if(!card.dataset.connector) card.dataset.connector='tr-tax';
+    // All cards shown initially (tr-tax is default)
+    card.style.display='block';
   });
   rebuildCatCounts();
   updateStatsBar('all');
