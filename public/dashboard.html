@@ -614,22 +614,28 @@ async function fetchInitiative(conn,id){
     }
   }
 
-  // 4. Stories via WIQL under area path
-  var areaPath=fields['System.AreaPath']||'TaxProf';
-  var wiql={query:"SELECT [System.Id],[System.State],[System.AreaPath],[System.WorkItemType],[System.Title] FROM WorkItems WHERE [System.AreaPath] UNDER '"+areaPath+"' AND ([System.WorkItemType]='User Story' OR ([System.WorkItemType]='Task' AND [System.Title] CONTAINS 'Investigation')) AND [System.State] <> 'Removed' ORDER BY [System.Id]"};
+  // 4. Stories via WIQL — query by feature IDs as parents (more accurate than area path)
   var stories=[];
-  try{
-    var wr=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify(wiql)});
-    if(wr.ok){
-      var wdArr=(await wr.json()).workItems||[];
-      var sids=wdArr.map(function(w){return w.id;});
-      for(var j=0;j<sids.length;j+=46){
-        var sb=sids.slice(j,j+46);
-        var sr=await fetch(base+'/_apis/wit/workitems?ids='+sb.join(',')+'&fields=System.Id,System.Title,System.State,System.WorkItemType,System.AreaPath,System.IterationPath,System.AssignedTo,Custom.PI_ReleaseDate&api-version=7.0',{headers:hdrs});
-        if(sr.ok){var sd=await sr.json(); stories=stories.concat(sd.value||[]);}
+  if(featIds.length>0){
+    // Build WIQL querying stories under all feature IDs
+    var featIdList=featIds.slice(0,200).join(',');
+    var wiql={query:"SELECT [System.Id],[System.State],[System.AreaPath],[System.WorkItemType],[System.Title],[System.IterationPath],[System.AssignedTo],[Custom.PI_ReleaseDate] FROM WorkItemLinks WHERE [Source].[System.Id] IN ("+featIdList+") AND [System.Links.LinkType]='System.LinkTypes.Hierarchy-Forward' AND ([Target].[System.WorkItemType]='User Story' OR ([Target].[System.WorkItemType]='Task' AND [Target].[System.Title] CONTAINS 'Investigation')) AND [Target].[System.State] <> 'Removed' MODE (MustContain)"};
+    try{
+      var wr=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify(wiql)});
+      if(wr.ok){
+        var wdData=await wr.json();
+        // This returns WorkItemRelations — extract target IDs
+        var sids=(wdData.workItemRelations||[]).filter(function(r){return r.rel&&r.target;}).map(function(r){return r.target.id;});
+        // Deduplicate
+        sids=[...new Set(sids)];
+        for(var j=0;j<sids.length;j+=46){
+          var sb=sids.slice(j,j+46);
+          var sr=await fetch(base+'/_apis/wit/workitems?ids='+sb.join(',')+'&fields=System.Id,System.Title,System.State,System.WorkItemType,System.AreaPath,System.IterationPath,System.AssignedTo,Custom.PI_ReleaseDate&api-version=7.0',{headers:hdrs});
+          if(sr.ok){var sd=await sr.json(); stories=stories.concat(sd.value||[]);}
+        }
       }
-    }
-  }catch(e){console.warn('Story fetch:',e);}
+    }catch(e){console.warn('Story fetch:',e);}
+  }
 
   // 5. Count states
   function cls(s){
@@ -644,7 +650,7 @@ async function fetchInitiative(conn,id){
     counts[c==='new'?'newCount':c]++;
   });
 
-  // 6. Area path summaries
+  // 6. Area path summaries from stories
   var apMap={};
   stories.forEach(function(s){
     var ap=s.fields['System.AreaPath']||'';
@@ -654,6 +660,32 @@ async function fetchInitiative(conn,id){
     var c=cls(s.fields['System.State']);
     apMap[leaf][c==='new'?'newCount':c]++;
   });
+  
+  // 6b. Per-feature story counts using workItemRelations source→target map
+  // Re-query with source info to build featStoryMap
+  var featStoryMap={};
+  if(featIds.length>0){
+    try{
+      var featIdList2=featIds.slice(0,200).join(',');
+      var wiql2={query:"SELECT [System.Id] FROM WorkItemLinks WHERE [Source].[System.Id] IN ("+featIdList2+") AND [System.Links.LinkType]='System.LinkTypes.Hierarchy-Forward' AND ([Target].[System.WorkItemType]='User Story' OR ([Target].[System.WorkItemType]='Task' AND [Target].[System.Title] CONTAINS 'Investigation')) AND [Target].[System.State] <> 'Removed' MODE (MustContain)"};
+      var wr2=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify(wiql2)});
+      if(wr2.ok){
+        var wd2=await wr2.json();
+        (wd2.workItemRelations||[]).forEach(function(r){
+          if(!r.rel||!r.source||!r.target) return;
+          var srcId=r.source.id;
+          if(!featStoryMap[srcId]) featStoryMap[srcId]={total:0,closed:0,active:0,ready:0,newCount:0};
+          featStoryMap[srcId].total++;
+          var story=stories.find(function(s){return s.id===r.target.id;});
+          if(story){
+            story._featId=srcId; // tag story with parent feature ID
+            var c=cls(story.fields['System.State']);
+            featStoryMap[srcId][c==='new'?'newCount':c]++;
+          }
+        });
+      }
+    }catch(e){console.warn('featStoryMap:',e);}
+  }
 
   // 7. Release date
   var rd=fields['Custom.PI_ReleaseDate']||fields['Microsoft.VSTS.Scheduling.TargetDate']||null;
@@ -665,8 +697,36 @@ async function fetchInitiative(conn,id){
     assignedTo:typeof fields['System.AssignedTo']==='object'?fields['System.AssignedTo'].displayName:(fields['System.AssignedTo']||''),
     releaseDate:rdFmt, pct:pct, features:features.length,
     counts:counts, stories:stories, areaPaths:Object.values(apMap),
-    rawFeatures:features
+    rawFeatures:features, featStoryMap:featStoryMap
   };
+}
+
+function buildStoryTable(storyList){
+  if(!storyList||!storyList.length) return '<p style="font-size:10px;color:#94a3b8;padding:10px">No stories.</p>';
+  var stateColors={Active:'#1d4ed8',Ready:'#5b21b6',New:'#475569',Closed:'#166534',Resolved:'#166534'};
+  var rows=storyList.map(function(s){
+    var sf=s.fields;
+    var st=sf['System.State']||'';
+    var sc=stateColors[st]||'#64748b';
+    var iter=(sf['System.IterationPath']||'').split('\\').pop();
+    var assigned=typeof sf['System.AssignedTo']==='object'?(sf['System.AssignedTo'].displayName||'—'):(sf['System.AssignedTo']||'—');
+    var rd=sf['Custom.PI_ReleaseDate'];
+    var rdStr=rd?new Date(rd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+    var tp=sf['System.WorkItemType']==='Task'?'p-task':'p-us';
+    return '<tr class="story-row" onclick="window.open(\'https://dev.azure.com/tr-tax/TaxProf/_workitems/edit/'+s.id+'\',\'_blank\')" style="cursor:pointer">'+
+      '<td><span class="s-id">#'+s.id+'</span></td>'+
+      '<td><span class="s-title" title="'+sf['System.Title'].replace(/"/g,"&quot;")+'">'+sf['System.Title']+'</span></td>'+
+      '<td><span class="s-pill '+tp+'">'+sf['System.WorkItemType']+'</span></td>'+
+      '<td><span style="font-size:8px;font-weight:700;padding:1px 6px;border-radius:20px;color:'+sc+';background:'+sc+'22">'+st+'</span></td>'+
+      '<td class="s-muted">'+iter+'</td>'+
+      '<td class="s-muted" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+assigned+'</td>'+
+      '<td class="s-muted">'+rdStr+'</td>'+
+    '</tr>';
+  }).join('');
+  return '<div class="story-filter-bar"><span class="sf-count">'+storyList.length+' stories</span></div>'+
+    '<div class="story-table-wrap"><table class="story-table">'+
+    '<thead><tr><th>ID</th><th>Title</th><th>Type</th><th>State</th><th>Iteration</th><th>Assigned To</th><th>Release Date</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>';
 }
 
 function renderLiveCard(data,conn,cat,cardId,mode){
@@ -736,12 +796,40 @@ function renderLiveCard(data,conn,cat,cardId,mode){
     var frd=f.fields['Custom.PI_ReleaseDate'];
     var frdStr=frd?new Date(frd).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
     var stCls={'Active':'fs-active','New':'fs-new','Closed':'fs-done','Ready':'fs-new','Resolved':'fs-done'}[fst]||'fs-new';
+    var fsc=data.featStoryMap&&data.featStoryMap[f.id]?data.featStoryMap[f.id]:{total:0,closed:0,active:0,ready:0,newCount:0};
+    var fpct=fsc.total?Math.round(fsc.closed/fsc.total*100):0;
+    // Build story rows for this feature
+    var fStories=data.stories.filter(function(s){
+      // Match stories that belong to this feature via featStoryMap
+      var stateStr=s.fields['System.State'];
+      return true; // All stories shown; filter in UI
+    });
+    // Get stories specifically under this feature (approximate via iteration of featStoryMap)
+    var featStoryRows='';
+    if(data.featStoryMap&&data.featStoryMap[f.id]&&data.stories.length){
+      // We need a source→target map - use storyFeatMap built in renderLiveCard
+      var thisFeatStories=data.stories.filter(function(s){return s._featId===f.id;});
+      if(thisFeatStories.length){
+        featStoryRows=buildStoryTable(thisFeatStories);
+      } else {
+        featStoryRows='<div style="padding:10px 14px;font-size:10px;color:#94a3b8;background:#f8fafc">'+fsc.total+' stories in this feature. Open ADO for details.</div>';
+      }
+    } else {
+      featStoryRows='<div style="padding:10px 14px;font-size:10px;color:#94a3b8;background:#f8fafc">'+(fsc.total||'No')+' stories.</div>';
+    }
     return '<div class="feat-card"><div class="feat-header" onclick="toggleFeatEl(this)">'+
       '<span style="font-size:12px;color:#16a34a;flex-shrink:0">\u2442</span>'+
       '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#'+f.id+'</span><span class="feat-title">'+f.fields['System.Title']+'</span></div>'+
-      '<div class="feat-meta"><span class="feat-state '+stCls+'">'+fst+'</span>'+(frdStr?'<span style="font-size:9px;color:#d97706">&#128197; '+frdStr+'</span>':'')+'</div></div>'+
+      '<div class="feat-meta">'+
+        '<div class="prog-row"><div class="pbar" style="width:60px"><div class="pfill" style="width:'+fpct+'%;background:#16a34a"></div></div><span class="pct" style="color:#86efac">'+fpct+'%</span></div>'+
+        '<span class="feat-meta-text">'+fsc.closed+'/'+fsc.total+' closed</span>'+
+        (fsc.active?'<span style="font-size:9px;color:#2563eb;font-weight:600">'+fsc.active+' active</span>':'')+
+        '<span class="feat-state '+stCls+'">'+fst+'</span>'+
+        (frdStr?'<span style="font-size:9px;color:#d97706">&#128197; '+frdStr+'</span>':'')+
+      '</div></div>'+
+      '<span class="feat-count">'+fsc.total+'</span>'+
       '<span class="caret" id="caret-'+fk+'" style="font-size:10px">\u25BC</span></div>'+
-      '<div class="story-zone" id="sz-'+fk+'" style="display:none"><div style="padding:10px 14px;font-size:10px;color:#94a3b8;background:#f8fafc">Stories load per feature in the full ADO integration.</div></div></div>';
+      '<div class="story-zone" id="sz-'+fk+'" style="display:none">'+featStoryRows+'</div></div>';
   }).join('');
 
   // Area paths tab
