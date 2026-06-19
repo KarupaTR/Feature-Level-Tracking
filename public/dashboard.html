@@ -614,27 +614,42 @@ async function fetchInitiative(conn,id){
     }
   }
 
-  // 4. Stories via WIQL — query by feature IDs as parents (more accurate than area path)
+  // 4. Stories — fetch all direct children of ALL features in one flat WIQL
+  // Using System.Parent field — works across all area paths
   var stories=[];
+  var featStoryRelMap={}; // featId -> [storyId, ...]
   if(featIds.length>0){
-    // Build WIQL querying stories under all feature IDs
-    var featIdList=featIds.slice(0,200).join(',');
-    var wiql={query:"SELECT [System.Id],[System.State],[System.AreaPath],[System.WorkItemType],[System.Title],[System.IterationPath],[System.AssignedTo],[Custom.PI_ReleaseDate] FROM WorkItemLinks WHERE [Source].[System.Id] IN ("+featIdList+") AND [System.Links.LinkType]='System.LinkTypes.Hierarchy-Forward' AND ([Target].[System.WorkItemType]='User Story' OR ([Target].[System.WorkItemType]='Task' AND [Target].[System.Title] CONTAINS 'Investigation')) AND [Target].[System.State] <> 'Removed' MODE (MustContain)"};
-    try{
-      var wr=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify(wiql)});
-      if(wr.ok){
-        var wdData=await wr.json();
-        // This returns WorkItemRelations — extract target IDs
-        var sids=(wdData.workItemRelations||[]).filter(function(r){return r.rel&&r.target;}).map(function(r){return r.target.id;});
-        // Deduplicate
-        sids=[...new Set(sids)];
-        for(var j=0;j<sids.length;j+=46){
-          var sb=sids.slice(j,j+46);
-          var sr=await fetch(base+'/_apis/wit/workitems?ids='+sb.join(',')+'&fields=System.Id,System.Title,System.State,System.WorkItemType,System.AreaPath,System.IterationPath,System.AssignedTo,Custom.PI_ReleaseDate&api-version=7.0',{headers:hdrs});
-          if(sr.ok){var sd=await sr.json(); stories=stories.concat(sd.value||[]);}
+    // Split into batches of 100 feature IDs per WIQL (URL length limit)
+    var allStoryIds=[];
+    for(var fi=0;fi<featIds.length;fi+=100){
+      var fBatch=featIds.slice(fi,fi+100);
+      var fIdStr=fBatch.join(',');
+      var sq="SELECT [System.Id],[System.State],[System.AreaPath],[System.WorkItemType],[System.Title],[System.IterationPath],[System.AssignedTo],[Custom.PI_ReleaseDate],[System.Parent] FROM WorkItems WHERE [System.Parent] IN ("+fIdStr+") AND ([System.WorkItemType]='User Story' OR ([System.WorkItemType]='Task' AND [System.Title] CONTAINS 'Investigation')) AND [System.State]<>'Removed' ORDER BY [System.Id]";
+      try{
+        var sqr=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify({query:sq})});
+        if(sqr.ok){
+          var sqd=await sqr.json();
+          (sqd.workItems||[]).forEach(function(w){allStoryIds.push(w.id);});
         }
+      }catch(e){console.warn('Story WIQL batch',fi,e);}
+    }
+    // Deduplicate and batch-fetch full details
+    allStoryIds=[...new Set(allStoryIds)];
+    for(var j=0;j<allStoryIds.length;j+=46){
+      var sb=allStoryIds.slice(j,j+46);
+      var sr=await fetch(base+'/_apis/wit/workitems?ids='+sb.join(',')+'&fields=System.Id,System.Title,System.State,System.WorkItemType,System.AreaPath,System.IterationPath,System.AssignedTo,Custom.PI_ReleaseDate,System.Parent&api-version=7.0',{headers:hdrs});
+      if(sr.ok){
+        var sd=await sr.json();
+        (sd.value||[]).forEach(function(s){
+          stories.push(s);
+          // Tag with parent feature ID
+          var parentId=s.fields['System.Parent'];
+          s._featId=parentId;
+          if(!featStoryRelMap[parentId]) featStoryRelMap[parentId]=[];
+          featStoryRelMap[parentId].push(s.id);
+        });
       }
-    }catch(e){console.warn('Story fetch:',e);}
+    }
   }
 
   // 5. Count states
@@ -661,31 +676,16 @@ async function fetchInitiative(conn,id){
     apMap[leaf][c==='new'?'newCount':c]++;
   });
   
-  // 6b. Per-feature story counts using workItemRelations source→target map
-  // Re-query with source info to build featStoryMap
+  // 6b. Build featStoryMap directly from stories (System.Parent already fetched)
   var featStoryMap={};
-  if(featIds.length>0){
-    try{
-      var featIdList2=featIds.slice(0,200).join(',');
-      var wiql2={query:"SELECT [System.Id] FROM WorkItemLinks WHERE [Source].[System.Id] IN ("+featIdList2+") AND [System.Links.LinkType]='System.LinkTypes.Hierarchy-Forward' AND ([Target].[System.WorkItemType]='User Story' OR ([Target].[System.WorkItemType]='Task' AND [Target].[System.Title] CONTAINS 'Investigation')) AND [Target].[System.State] <> 'Removed' MODE (MustContain)"};
-      var wr2=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify(wiql2)});
-      if(wr2.ok){
-        var wd2=await wr2.json();
-        (wd2.workItemRelations||[]).forEach(function(r){
-          if(!r.rel||!r.source||!r.target) return;
-          var srcId=r.source.id;
-          if(!featStoryMap[srcId]) featStoryMap[srcId]={total:0,closed:0,active:0,ready:0,newCount:0};
-          featStoryMap[srcId].total++;
-          var story=stories.find(function(s){return s.id===r.target.id;});
-          if(story){
-            story._featId=srcId; // tag story with parent feature ID
-            var c=cls(story.fields['System.State']);
-            featStoryMap[srcId][c==='new'?'newCount':c]++;
-          }
-        });
-      }
-    }catch(e){console.warn('featStoryMap:',e);}
-  }
+  stories.forEach(function(s){
+    var parentId=s._featId||s.fields['System.Parent'];
+    if(!parentId) return;
+    if(!featStoryMap[parentId]) featStoryMap[parentId]={total:0,closed:0,active:0,ready:0,newCount:0};
+    featStoryMap[parentId].total++;
+    var c=cls(s.fields['System.State']);
+    featStoryMap[parentId][c==='new'?'newCount':c]++;
+  });
 
   // 7. Release date
   var rd=fields['Custom.PI_ReleaseDate']||fields['Microsoft.VSTS.Scheduling.TargetDate']||null;
@@ -697,7 +697,7 @@ async function fetchInitiative(conn,id){
     assignedTo:typeof fields['System.AssignedTo']==='object'?fields['System.AssignedTo'].displayName:(fields['System.AssignedTo']||''),
     releaseDate:rdFmt, pct:pct, features:features.length,
     counts:counts, stories:stories, areaPaths:Object.values(apMap),
-    rawFeatures:features, featStoryMap:featStoryMap
+    rawFeatures:features, featStoryMap:featStoryMap, featStoryRelMap:featStoryRelMap
   };
 }
 
@@ -808,7 +808,7 @@ function renderLiveCard(data,conn,cat,cardId,mode){
     var featStoryRows='';
     if(data.featStoryMap&&data.featStoryMap[f.id]&&data.stories.length){
       // We need a source→target map - use storyFeatMap built in renderLiveCard
-      var thisFeatStories=data.stories.filter(function(s){return s._featId===f.id;});
+      var thisFeatStories=data.stories.filter(function(s){return s._featId===f.id||s.fields['System.Parent']===f.id;});
       if(thisFeatStories.length){
         featStoryRows=buildStoryTable(thisFeatStories);
       } else {
