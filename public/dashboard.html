@@ -248,7 +248,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <input placeholder="Search Initiative ID…" id="search-input" onkeydown="if(event.key==='Enter')doTopSearch()"/>
       <button class="tb-search-go" onclick="doTopSearch()">Search</button>
     </div>
-    <button class="tb-btn" id="topbar-refresh" onclick="alert('Refreshes all pinned initiatives')">↺ Refresh All</button>
+    <button class="tb-btn" id="topbar-refresh" onclick="refreshAll()">↺ Refresh All</button>
     <button class="tb-btn primary" id="pin-add-btn" onclick="quickPin()">+ Pin Initiative</button>
   </div>
 
@@ -574,6 +574,260 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 </div>
 
 <script>
+var ADO_CONFIG={'tr-tax':{pat:'__NEXT_PUBLIC_ADO_PAT_TR_TAX__',org:'tr-tax',project:'TaxProf'},'tr-default':{pat:'__NEXT_PUBLIC_ADO_PAT_TR_TAX_DEFAULT__',org:'tr-tax',project:'TaxProf'}};
+// ── ADO LIVE INTEGRATION ──────────────────────────────────────────────────────
+
+function adoHeaders(conn){
+  var cfg=ADO_CONFIG[conn]||ADO_CONFIG['tr-tax'];
+  return {'Authorization':'Basic '+btoa(':'+cfg.pat),'Content-Type':'application/json'};
+}
+function adoBase(conn){
+  var cfg=ADO_CONFIG[conn]||ADO_CONFIG['tr-tax'];
+  return 'https://dev.azure.com/'+cfg.org+'/'+cfg.project;
+}
+
+async function fetchInitiative(conn,id){
+  var base=adoBase(conn), hdrs=adoHeaders(conn);
+
+  // 1. Fetch the Epic
+  var r=await fetch(base+'/_apis/wit/workitems/'+id+'?$expand=relations&api-version=7.0',{headers:hdrs});
+  if(!r.ok) throw new Error('HTTP '+r.status+' — check initiative ID');
+  var wi=await r.json();
+  var fields=wi.fields;
+
+  // 2. Child feature IDs
+  var featIds=(wi.relations||[])
+    .filter(function(rel){return rel.rel==='System.LinkTypes.Hierarchy-Forward'&&rel.attributes&&rel.attributes.name==='Child';})
+    .map(function(rel){return parseInt(rel.url.split('/').pop());});
+
+  // 3. Batch fetch features
+  var features=[];
+  for(var i=0;i<featIds.length;i+=46){
+    var batch=featIds.slice(i,i+46);
+    var br=await fetch(base+'/_apis/wit/workitems?ids='+batch.join(',')+'&fields=System.Id,System.Title,System.State,System.WorkItemType,System.AreaPath,Custom.PI_ReleaseDate&api-version=7.0',{headers:hdrs});
+    if(br.ok){
+      var bd=await br.json();
+      (bd.value||[]).forEach(function(f){
+        if(f.fields['System.WorkItemType']==='Feature'&&f.fields['System.State']!=='Removed')
+          features.push(f);
+      });
+    }
+  }
+
+  // 4. Stories via WIQL under area path
+  var areaPath=fields['System.AreaPath']||'TaxProf';
+  var wiql={query:"SELECT [System.Id],[System.State],[System.AreaPath],[System.WorkItemType],[System.Title] FROM WorkItems WHERE [System.AreaPath] UNDER '"+areaPath+"' AND ([System.WorkItemType]='User Story' OR ([System.WorkItemType]='Task' AND [System.Title] CONTAINS 'Investigation')) AND [System.State] <> 'Removed' ORDER BY [System.Id]"};
+  var stories=[];
+  try{
+    var wr=await fetch(base+'/_apis/wit/wiql?$top=500&api-version=7.0',{method:'POST',headers:hdrs,body:JSON.stringify(wiql)});
+    if(wr.ok){
+      var wdArr=(await wr.json()).workItems||[];
+      var sids=wdArr.map(function(w){return w.id;});
+      for(var j=0;j<sids.length;j+=46){
+        var sb=sids.slice(j,j+46);
+        var sr=await fetch(base+'/_apis/wit/workitems?ids='+sb.join(',')+'&fields=System.Id,System.Title,System.State,System.WorkItemType,System.AreaPath,System.IterationPath,System.AssignedTo,Custom.PI_ReleaseDate&api-version=7.0',{headers:hdrs});
+        if(sr.ok){var sd=await sr.json(); stories=stories.concat(sd.value||[]);}
+      }
+    }
+  }catch(e){console.warn('Story fetch:',e);}
+
+  // 5. Count states
+  function cls(s){
+    if(['Closed','Resolved','Removed'].indexOf(s)>-1) return 'closed';
+    if(s==='Active') return 'active';
+    if(s==='Ready') return 'ready';
+    return 'new';
+  }
+  var counts={total:stories.length,closed:0,active:0,ready:0,newCount:0};
+  stories.forEach(function(s){
+    var c=cls(s.fields['System.State']);
+    counts[c==='new'?'newCount':c]++;
+  });
+
+  // 6. Area path summaries
+  var apMap={};
+  stories.forEach(function(s){
+    var ap=s.fields['System.AreaPath']||'';
+    var leaf=ap.split('\\').pop();
+    if(!apMap[leaf]) apMap[leaf]={name:leaf,fullPath:ap,total:0,closed:0,active:0,ready:0,newCount:0};
+    apMap[leaf].total++;
+    var c=cls(s.fields['System.State']);
+    apMap[leaf][c==='new'?'newCount':c]++;
+  });
+
+  // 7. Release date
+  var rd=fields['Custom.PI_ReleaseDate']||fields['Microsoft.VSTS.Scheduling.TargetDate']||null;
+  var rdFmt=rd?new Date(rd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+  var pct=counts.total?Math.round(counts.closed/counts.total*100):0;
+
+  return {
+    id:wi.id, title:fields['System.Title'], state:fields['System.State'],
+    assignedTo:typeof fields['System.AssignedTo']==='object'?fields['System.AssignedTo'].displayName:(fields['System.AssignedTo']||''),
+    releaseDate:rdFmt, pct:pct, features:features.length,
+    counts:counts, stories:stories, areaPaths:Object.values(apMap),
+    rawFeatures:features
+  };
+}
+
+function renderLiveCard(data,conn,cat,cardId,mode){
+  var connColors={'tr-tax':'#123015','tr-default':'#1e40af'};
+  var catLabels={'sureprep':'SurePrep API','cch':'TSI-CCH','ultratax':'TSI-UltraTax','gosystem':'TSI-GoSystem','lacerte':'TSI-Lacerte'};
+  var c=data.counts;
+  var card=document.createElement('div');
+  card.className='init-card'+(mode==='search'?' search-card':'');
+  card.id=cardId||('live-'+data.id);
+  card.dataset.connector=conn;
+  card.dataset.category=cat||'';
+  card.dataset.stories=c.total; card.dataset.closed=c.closed;
+  card.dataset.active=c.active; card.dataset.newcount=c.newCount; card.dataset.ready=c.ready;
+  card.style.borderLeftColor=mode==='search'?'#f59e0b':(connColors[conn]||'#123015');
+
+  var tagBadge=mode==='search'?'<span class="tag tag-search">&#128269; Search result</span>':'<span class="tag tag-pin">&#128204; Pinned</span>';
+  var dynTags=cat?'<span class="tag tag-dyn" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">'+CONNS[conn]+'</span><span class="tag tag-dyn" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">'+(catLabels[cat]||cat)+'</span>':'';
+
+  var hdr=document.createElement('div'); hdr.className='init-header';
+  hdr.onclick=function(){toggleInitEl(this);};
+  var left=document.createElement('div'); left.className='init-header-left';
+  left.innerHTML='<div class="init-tags">'+tagBadge+'<span class="init-id">#'+data.id+'</span><span class="tag tag-active">'+data.state+'</span><span class="tag tag-type">Initiative</span>'+dynTags+'</div>'+
+    '<div class="init-title">'+data.title+'</div>'+
+    '<div class="init-subrow"><div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:'+data.pct+'%;background:'+(mode==='search'?'#f59e0b':'#123015')+'"></div></div><span class="pct">'+data.pct+'%</span></div>'+
+    (data.assignedTo?'<span class="meta">&#128100; '+data.assignedTo+'</span>':'')+
+    (data.releaseDate&&data.releaseDate!=='—'?'<span class="meta-date">&#128197; Release Date: '+data.releaseDate+'</span>':'')+
+    '</div>';
+
+  var right=document.createElement('div'); right.className='init-header-right';
+  right.onclick=function(e){e.stopPropagation();};
+  right.innerHTML='<div class="init-chips">'+
+    '<div class="chip"><span class="chip-v">'+data.features+'</span><span class="chip-l">Features</span></div>'+
+    '<div class="chip"><span class="chip-v" style="color:#2563eb">'+c.total+'</span><span class="chip-l">Stories</span></div>'+
+    '<div class="chip"><span class="chip-v" style="color:#16a34a">'+c.closed+'</span><span class="chip-l">Closed</span></div>'+
+    '<div class="chip"><span class="chip-v" style="color:#2563eb">'+c.active+'</span><span class="chip-l">Active</span></div>'+
+    '<div class="chip"><span class="chip-v" style="color:#64748b">'+c.newCount+'</span><span class="chip-l">New</span></div>'+
+    '<div class="chip"><span class="chip-v" style="color:#7c3aed">'+c.ready+'</span><span class="chip-l">Ready</span></div>'+
+    '</div>';
+
+  if(mode==='search'){
+    var pinBtn=document.createElement('button'); pinBtn.className='ibtn pin-it'; pinBtn.innerHTML='&#128204; Pin';
+    pinBtn.onclick=function(e){e.stopPropagation();
+      window.currentSearchData={id:data.id,title:data.title,assignedTo:data.assignedTo,releaseDate:data.releaseDate,pct:data.pct,features:data.features,stories:c.total,closed:c.closed,active:c.active,newcount:c.newCount,ready:c.ready};
+      window.currentSearchFullData=data;
+      pinWithCategory(String(data.id),data.title);
+    };
+    right.appendChild(pinBtn);
+  }
+  var delBtn=document.createElement('button'); delBtn.className='ibtn del'; delBtn.innerHTML='&#10005;';
+  if(mode==='search'){
+    delBtn.onclick=function(e){e.stopPropagation();var sra=document.getElementById('search-result-area');if(sra)sra.innerHTML='';document.getElementById('search-input').value='';};
+  } else {
+    delBtn.onclick=function(e){e.stopPropagation();removeCard(card);};
+  }
+  right.appendChild(delBtn);
+
+  var caret=document.createElement('span'); caret.className='caret'; caret.id='caret-'+(cardId||('live-'+data.id));
+  hdr.appendChild(left); hdr.appendChild(right); hdr.appendChild(caret);
+
+  var body=document.createElement('div'); body.className='init-body'; body.id='body-'+(cardId||('live-'+data.id));
+  var key=cardId||('live-'+data.id);
+
+  // Features tab
+  var featCards=data.rawFeatures.map(function(f,i){
+    var fk=key+'-f'+i;
+    var fst=f.fields['System.State'];
+    var frd=f.fields['Custom.PI_ReleaseDate'];
+    var frdStr=frd?new Date(frd).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
+    var stCls={'Active':'fs-active','New':'fs-new','Closed':'fs-done','Ready':'fs-new','Resolved':'fs-done'}[fst]||'fs-new';
+    return '<div class="feat-card"><div class="feat-header" onclick="toggleFeatEl(this)">'+
+      '<span style="font-size:12px;color:#16a34a;flex-shrink:0">\u2442</span>'+
+      '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#'+f.id+'</span><span class="feat-title">'+f.fields['System.Title']+'</span></div>'+
+      '<div class="feat-meta"><span class="feat-state '+stCls+'">'+fst+'</span>'+(frdStr?'<span style="font-size:9px;color:#d97706">&#128197; '+frdStr+'</span>':'')+'</div></div>'+
+      '<span class="caret" id="caret-'+fk+'" style="font-size:10px">\u25BC</span></div>'+
+      '<div class="story-zone" id="sz-'+fk+'" style="display:none"><div style="padding:10px 14px;font-size:10px;color:#94a3b8;background:#f8fafc">Stories load per feature in the full ADO integration.</div></div></div>';
+  }).join('');
+
+  // Area paths tab
+  var apRows=data.areaPaths.map(function(ap,i){
+    var apk=key+'-ap'+i;
+    var pct=ap.total?Math.round(ap.closed/ap.total*100):0;
+    return '<div class="ap-row" onclick="toggleAP(\''+apk+'\')">'+
+      '<span class="ap-dot" style="background:#123015"></span>'+
+      '<div style="flex:1;min-width:0"><div class="ap-name">'+ap.name+'</div><div class="ap-path">'+ap.fullPath+'</div>'+
+      '<div class="ap-pbar"><div class="ap-pfill" style="width:'+pct+'%"></div></div></div>'+
+      '<div class="ap-chips" onclick="event.stopPropagation()">'+
+        '<span class="apc apc-total">'+ap.total+' total</span>'+
+        '<span class="apc apc-closed">'+ap.closed+' closed</span>'+
+        '<span class="apc apc-active">'+ap.active+' active</span>'+
+        '<span class="apc apc-new">'+ap.newCount+' new</span>'+
+        '<span class="apc apc-ready">'+ap.ready+' ready</span>'+
+      '</div><span class="caret" id="caret-'+apk+'" style="font-size:10px;margin-left:6px">\u25BC</span></div>'+
+      '<div id="sz-'+apk+'" style="display:none;margin:0 0 8px 20px;padding:10px;font-size:10px;color:#94a3b8;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">'+ap.name+': '+ap.total+' stories ('+ap.closed+' closed, '+ap.active+' active, '+ap.newCount+' new, '+ap.ready+' ready)</div>';
+  }).join('');
+  var tClosed=data.areaPaths.reduce(function(a,s){return a+s.closed;},0);
+  var tActive=data.areaPaths.reduce(function(a,s){return a+s.active;},0);
+  var tNew=data.areaPaths.reduce(function(a,s){return a+s.newCount;},0);
+  var tReady=data.areaPaths.reduce(function(a,s){return a+s.ready;},0);
+  var verif=(tClosed+tActive+tNew+tReady===data.counts.total)?'\u2713 Counts verified':'\u26A0 Check counts';
+  var apZone='<div class="ap-zone">'+apRows+'<div style="padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;margin-top:4px"><span style="font-size:10px;font-weight:700;color:#64748b">\u2713 Verification:</span><span style="font-size:10px;color:#64748b">'+data.counts.total+' = '+tClosed+' closed + '+tActive+' active + '+tNew+' new + '+tReady+' ready</span><span style="margin-left:auto;font-size:10px;font-weight:700;color:#16a34a">'+verif+'</span></div></div>';
+
+  body.innerHTML='<div class="inner-tab-bar">'+
+    '<div class="inner-tab active" onclick="switchTab(\''+key+'\',\'feat\',this)">\u2261 Features ('+data.features+')</div>'+
+    '<div class="inner-tab" onclick="switchTab(\''+key+'\',\'ap\',this)">&#128506; Area Paths ('+data.areaPaths.length+')</div>'+
+    '</div>'+
+    '<div class="tab-panel active" id="tab-'+key+'-feat"><div class="feat-zone">'+featCards+'</div></div>'+
+    '<div class="tab-panel" id="tab-'+key+'-ap">'+apZone+'</div>';
+
+  card.appendChild(hdr); card.appendChild(body);
+  return card;
+}
+
+async function doTopSearch(){
+  var val=document.getElementById('search-input').value.trim().replace('#','');
+  if(!val) return;
+  var area=document.getElementById('search-result-area');
+  area.innerHTML='';
+  if(!document.getElementById('spin-style')){var st=document.createElement('style');st.id='spin-style';st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
+  var loader=document.createElement('div');
+  loader.style.cssText='padding:24px;text-align:center;font-size:12px;color:#94a3b8;background:#fff;border-radius:12px;border:1px solid #f1f5f9';
+  loader.innerHTML='<div style="display:inline-block;width:18px;height:18px;border:2px solid #e2e8f0;border-top-color:#123015;border-radius:50%;animation:spin 0.7s linear infinite;margin-right:8px;vertical-align:middle"></div>Loading #'+val+' from ADO…';
+  area.appendChild(loader);
+  try{
+    var data=await fetchInitiative(currentConnector,val);
+    area.innerHTML='';
+    var banner=document.createElement('div');
+    banner.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;margin-bottom:10px;font-size:11px;color:#92400e';
+    var bt=document.createElement('span');bt.innerHTML='&#128269; <b>Search result \u2014 session only.</b>&nbsp;Pin to save permanently.';
+    var cb=document.createElement('button');cb.textContent='Clear';cb.style.cssText='margin-left:auto;background:none;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:10px;color:#92400e';
+    cb.onclick=function(){area.innerHTML='';document.getElementById('search-input').value='';};
+    banner.appendChild(bt);banner.appendChild(cb);area.appendChild(banner);
+    window.currentSearchData={id:data.id,title:data.title,assignedTo:data.assignedTo,releaseDate:data.releaseDate,pct:data.pct,features:data.features,stories:data.counts.total,closed:data.counts.closed,active:data.counts.active,newcount:data.counts.newCount,ready:data.counts.ready};
+    window.currentSearchId=String(data.id);window.currentSearchTitle=data.title;window.currentSearchFullData=data;
+    area.appendChild(renderLiveCard(data,currentConnector,null,'live-search','search'));
+  }catch(err){
+    area.innerHTML='<div style="padding:16px;text-align:center;color:#ef4444;font-size:12px">&#10060; '+err.message+'</div>';
+  }
+}
+
+async function refreshAll(){
+  var cards=Array.from(document.querySelectorAll('.init-card[data-connector]')).filter(function(c){return c.id!=='live-search'&&c.dataset.connector===currentConnector;});
+  if(!cards.length){alert('No pinned initiatives to refresh.');return;}
+  var btn=document.getElementById('topbar-refresh');
+  if(btn){btn.textContent='Refreshing\u2026';btn.disabled=true;}
+  for(var i=0;i<cards.length;i++){
+    var card=cards[i];var idEl=card.querySelector('.init-id');if(!idEl)continue;
+    var id=idEl.textContent.replace('#','').trim();
+    try{
+      var data=await fetchInitiative(currentConnector,id);
+      var newCard=renderLiveCard(data,currentConnector,card.dataset.category,card.id,'pinned');
+      card.parentNode.replaceChild(newCard,card);
+    }catch(e){console.error('Refresh #'+id,e);}
+  }
+  if(btn){btn.textContent='\u21BA Refresh All';btn.disabled=false;}
+  rebuildCatCounts();updateStatsBar(currentCat);
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:20px;right:20px;background:#123015;color:#fff;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:300';
+  toast.textContent='Refreshed from ADO';document.body.appendChild(toast);setTimeout(function(){toast.remove();},2500);
+}
+
+
 var currentConnector = 'tr-tax';
 var currentCat = 'all';
 var CATS = {'all':'All','sureprep':'SurePrep API','cch':'TSI-CCH','ultratax':'TSI-UltraTax','gosystem':'TSI-GoSystem','lacerte':'TSI-Lacerte'};
@@ -699,64 +953,6 @@ function quickPin(){
   if(data){window.currentSearchData=Object.assign({id:id},data);}
   else{window.currentSearchData={id:id,title:'Initiative #'+id,assignedTo:'',releaseDate:'',pct:0,features:0,stories:0,closed:0,active:0,newcount:0,ready:0};}
   pinWithCategory(id, window.currentSearchData.title);
-}
-function doTopSearch(){
-  var val=document.getElementById('search-input').value.trim();
-  if(!val)return;
-  window.currentSearchId=val;
-  window.currentSearchTitle='SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations';
-  window.currentSearchData={id:val,title:'SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations',assignedTo:'Thatikonda, Swapna V. (TR Product)',releaseDate:'Jul 26, 2026',pct:53,features:21,stories:264,closed:140,active:0,newcount:30,ready:94};
-  var area=document.getElementById('search-result-area');
-  area.innerHTML='';
-
-  var banner=document.createElement('div');
-  banner.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;margin-bottom:10px;font-size:11px;color:#92400e';
-  var bt=document.createElement('span');bt.innerHTML='&#128269; <b>Search result \u2014 session only.</b>&nbsp;Pin to save permanently.';
-  var cb=document.createElement('button');cb.textContent='Clear';
-  cb.style.cssText='margin-left:auto;background:none;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:10px;color:#92400e';
-  cb.onclick=function(){area.innerHTML='';document.getElementById('search-input').value='';};
-  banner.appendChild(bt);banner.appendChild(cb);area.appendChild(banner);
-
-  var card=document.createElement('div');
-  card.className='init-card search-card';
-  card.style.borderLeftColor='#f59e0b';
-  card.dataset.connector=currentConnector;
-
-  var hdr=document.createElement('div');hdr.className='init-header';
-  hdr.onclick=function(){toggleInitEl(this);};
-
-  var left=document.createElement('div');left.className='init-header-left';
-  left.innerHTML='<div class="init-tags"><span class="tag tag-search">&#128269; Search result</span><span class="init-id">#'+val+'</span><span class="tag tag-active">Active</span><span class="tag tag-type">Initiative</span></div>'+
-    '<div class="init-title">SurePrep APIs \u2014 Expansion to Support the 1041 Binder and Workflow Automations</div>'+
-    '<div class="init-subrow"><div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:53%;background:#f59e0b"></div></div><span class="pct">53%</span></div>'+
-    '<span class="meta">&#128100; Thatikonda, Swapna V.</span><span class="meta-date">&#128197; Release Date: Jul 26, 2026</span></div>';
-
-  var right=document.createElement('div');right.className='init-header-right';
-  right.onclick=function(e){e.stopPropagation();};
-  right.innerHTML='<div class="init-chips">'+
-    '<div class="chip"><span class="chip-v">21</span><span class="chip-l">Features</span></div>'+
-    '<div class="chip"><span class="chip-v" style="color:#2563eb">264</span><span class="chip-l">Stories</span></div>'+
-    '<div class="chip"><span class="chip-v" style="color:#16a34a">140</span><span class="chip-l">Closed</span></div>'+
-    '<div class="chip"><span class="chip-v" style="color:#2563eb">0</span><span class="chip-l">Active</span></div>'+
-    '<div class="chip"><span class="chip-v" style="color:#64748b">30</span><span class="chip-l">New</span></div>'+
-    '<div class="chip"><span class="chip-v" style="color:#7c3aed">94</span><span class="chip-l">Ready</span></div>'+
-    '</div>';
-
-  var pinBtn=document.createElement('button');pinBtn.className='ibtn pin-it';pinBtn.innerHTML='&#128204; Pin';
-  pinBtn.onclick=function(e){e.stopPropagation();pinWithCategory(window.currentSearchId,window.currentSearchTitle);};
-  right.appendChild(pinBtn);
-  var delBtn=document.createElement('button');delBtn.className='ibtn del';delBtn.innerHTML='&#10005;';
-  delBtn.onclick=function(e){e.stopPropagation();area.innerHTML='';document.getElementById('search-input').value='';};
-  right.appendChild(delBtn);
-
-  var caret=document.createElement('span');caret.className='caret';caret.id='caret-sr';caret.textContent='\u25bc';
-  hdr.appendChild(left);hdr.appendChild(right);hdr.appendChild(caret);
-
-  var body=document.createElement('div');body.className='init-body';body.id='body-sr';
-  body.innerHTML='<div class="inner-tab-bar"><div class="inner-tab active">&#8801; Features (21)</div><div class="inner-tab">&#128506; Area Paths (5)</div></div>'+
-    '<div style="padding:12px 16px;background:#f8fafc;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9">In the live dashboard all features and stories load here from ADO.</div>';
-
-  card.appendChild(hdr);card.appendChild(body);area.appendChild(card);
 }
 
 function pinWithCategory(id,title){
