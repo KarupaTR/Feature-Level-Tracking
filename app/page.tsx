@@ -1,6 +1,4 @@
-"use client";
-import ADODashboard from "@/components/ADODashboard";
-
+import { redirect } from "next/navigation";
 export default function Home() {
-  return <ADODashboard />;
+  redirect("/dashboard.html");
 }
