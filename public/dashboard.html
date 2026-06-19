@@ -516,17 +516,24 @@ function showIterStories(evt, stories, apPath, iter, stateFilter){
   document.body.appendChild(modal);
 }
 
-function buildIterTable(allStories, ap){
+// Global story store keyed by card ID
+window._storyStore = window._storyStore || {};
+
+function buildIterTable(allStories, ap, storeKey){
+  // Store stories globally so inline onclick can access them
+  if(storeKey && allStories){
+    window._storyStore[storeKey] = allStories;
+  }
+  var sk = storeKey || 'default';
+
   function cls(st){if(['Closed','Resolved'].indexOf(st)>-1)return 'closed';if(st==='Active')return 'active';if(st==='Ready')return 'ready';return 'new';}
 
-  // Filter stories for this area path
   var apStories=allStories.filter(function(s){
     var sap=s.fields['System.AreaPath']||'';
     return sap===ap.fullPath||sap.split('\\').pop()===ap.name;
   });
   if(!apStories.length) return '<div style="padding:10px;font-size:10px;color:#94a3b8">No stories for this area path.</div>';
 
-  // Group by iteration
   var iterMap={};
   apStories.forEach(function(s){
     var iterFull=s.fields['System.IterationPath']||'No Sprint';
@@ -539,118 +546,66 @@ function buildIterTable(allStories, ap){
   });
 
   var iters=Object.values(iterMap).sort(function(a,b){return a.iter.localeCompare(b.iter);});
-
-  // Build table using DOM
-  var wrap=document.createElement('div');
-  wrap.style.cssText='background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:10px';
-
-  var table=document.createElement('table');
-  table.style.cssText='width:100%;border-collapse:collapse';
-
-  // Header
-  var thead=document.createElement('thead');
-  var cols=['Iteration','Total','Closed','Active','New','Ready','Progress'];
-  var colColors=['#64748b','#64748b','#16a34a','#2563eb','#475569','#7c3aed','#64748b'];
-  var htr=document.createElement('tr');
-  htr.style.background='#f1f5f9';
-  cols.forEach(function(col,i){
-    var th=document.createElement('th');
-    th.style.cssText='padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+colColors[i]+';'+(i===0?'text-align:left':'text-align:center');
-    th.textContent=col;
-    htr.appendChild(th);
-  });
-  thead.appendChild(htr);
-  table.appendChild(thead);
-
-  // Body
-  var tbody=document.createElement('tbody');
-
-  iters.forEach(function(it){
-    var pct=it.total?Math.round(it.closed/it.total*100):0;
-    var tr=document.createElement('tr');
-    tr.style.borderBottom='1px solid #f8fafc';
-
-    // Iteration name
-    var tdIter=document.createElement('td');
-    tdIter.style.cssText='text-align:left;font-weight:600;color:#334155;font-size:10px;padding:7px 12px';
-    tdIter.textContent=it.iter;
-    tr.appendChild(tdIter);
-
-    // Total
-    var tdTotal=document.createElement('td');
-    tdTotal.style.cssText='text-align:center;padding:7px 12px';
-    var spTotal=document.createElement('span');
-    spTotal.style.cssText='cursor:pointer;padding:2px 6px;border-radius:4px;color:#334155';
-    spTotal.textContent=it.total;
-    spTotal.onclick=(function(i,ap){return function(e){e.stopPropagation();showIterStories(e,allStories,ap.fullPath,i,null);};})(it.iter,ap);
-    tdTotal.appendChild(spTotal);
-    tr.appendChild(tdTotal);
-
-    // Closed / Active / New / Ready
-    var stateDefs=[
-      {val:it.closed, color:'#16a34a', filter:'closed'},
-      {val:it.active, color:'#2563eb', filter:'active'},
-      {val:it.newCount,color:'#475569', filter:'new'},
-      {val:it.ready,  color:'#7c3aed', filter:'ready'}
-    ];
-    stateDefs.forEach(function(sd){
-      var td=document.createElement('td');
-      td.style.cssText='text-align:center;padding:7px 12px';
-      var sp=document.createElement('span');
-      sp.textContent=sd.val;
-      sp.style.cssText='color:'+(sd.val?sd.color:'#94a3b8')+(sd.val?';cursor:pointer':'');
-      if(sd.val){
-        sp.onclick=(function(i,ap,f){return function(e){e.stopPropagation();showIterStories(e,allStories,ap.fullPath,i,f);};})(it.iter,ap,sd.filter);
-      }
-      td.appendChild(sp);
-      tr.appendChild(td);
-    });
-
-    // Progress bar
-    var tdProg=document.createElement('td');
-    tdProg.style.cssText='padding:7px 12px';
-    tdProg.innerHTML='<div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+pct+'%"></div></div>';
-    tr.appendChild(tdProg);
-
-    tbody.appendChild(tr);
-  });
-
-  // Totals row
-  var ttr=document.createElement('tr');
-  ttr.style.cssText='background:#f1f5f9;font-weight:700';
+  var apFullPath=ap.fullPath.replace(/'/g,"\\'");
   var apPct=ap.total?Math.round(ap.closed/ap.total*100):0;
-  var totalDefs=[
-    {text:'Total',align:'left',color:'#334155'},
-    {text:ap.total,align:'center',color:'#334155'},
-    {text:ap.closed,align:'center',color:'#16a34a'},
-    {text:ap.active,align:'center',color:'#2563eb'},
-    {text:ap.newCount,align:'center',color:'#475569'},
-    {text:ap.ready,align:'center',color:'#7c3aed'},
-    {text:'bar',align:'center',color:''}
-  ];
-  totalDefs.forEach(function(d,i){
-    var td=document.createElement('td');
-    td.style.cssText='padding:7px 12px;text-align:'+d.align+';color:'+d.color;
-    if(i===6){td.innerHTML='<div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+apPct+'%"></div></div>';}
-    else{td.textContent=d.text;}
-    ttr.appendChild(td);
-  });
-  tbody.appendChild(ttr);
-
-  // Verification row
-  var vtr=document.createElement('tr');
-  vtr.style.cssText='background:#f8fafc';
-  var vtd=document.createElement('td');
-  vtd.colSpan=7;
-  vtd.style.cssText='padding:6px 12px;font-size:9px;color:#64748b';
   var verified=(ap.closed+ap.active+ap.newCount+ap.ready)===ap.total;
-  vtd.innerHTML='<span style="font-weight:700">Verification:</span> '+ap.total+' = '+ap.closed+' closed + '+ap.active+' active + '+ap.newCount+' new + '+ap.ready+' ready &nbsp;<span style="color:'+(verified?'#16a34a':'#ef4444')+';font-weight:700">'+(verified?'✓ Verified':'⚠ Mismatch')+'</span>';
-  vtr.appendChild(vtd);
-  tbody.appendChild(vtr);
 
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-  return wrap.outerHTML;
+  var rowsHtml=iters.map(function(it){
+    var pct=it.total?Math.round(it.closed/it.total*100):0;
+    var iterEsc=it.iter.replace(/'/g,"\\'");
+
+    function makeCell(val,color,filter){
+      var style='color:'+(val?color:'#94a3b8')+(val?';cursor:pointer;font-weight:700':'');
+      var onclick=val?(' onclick="showIterStoriesFromStore(event,\''+sk+'\',\''+apFullPath+'\',\''+iterEsc+'\',\''+filter+'\')"'):'';
+      return '<td style="text-align:center;padding:7px 12px"><span style="'+style+'"'+onclick+'>'+val+'</span></td>';
+    }
+
+    return '<tr style="border-bottom:1px solid #f8fafc">'+
+      '<td style="text-align:left;font-weight:600;color:#334155;font-size:10px;padding:7px 12px">'+it.iter+'</td>'+
+      '<td style="text-align:center;padding:7px 12px"><span style="cursor:pointer;color:#334155" onclick="showIterStoriesFromStore(event,\''+sk+'\',\''+apFullPath+'\',\''+iterEsc+'\',null)">'+it.total+'</span></td>'+
+      makeCell(it.closed,'#16a34a','closed')+
+      makeCell(it.active,'#2563eb','active')+
+      makeCell(it.newCount,'#475569','new')+
+      makeCell(it.ready,'#7c3aed','ready')+
+      '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+pct+'%"></div></div></td>'+
+    '</tr>';
+  }).join('');
+
+  var totRow='<tr style="background:#f1f5f9;font-weight:700">'+
+    '<td style="padding:7px 12px;font-size:10px;text-align:left;color:#334155">Total</td>'+
+    '<td style="text-align:center;padding:7px 12px;color:#334155">'+ap.total+'</td>'+
+    '<td style="text-align:center;padding:7px 12px;color:#16a34a">'+ap.closed+'</td>'+
+    '<td style="text-align:center;padding:7px 12px;color:#2563eb">'+ap.active+'</td>'+
+    '<td style="text-align:center;padding:7px 12px;color:#475569">'+ap.newCount+'</td>'+
+    '<td style="text-align:center;padding:7px 12px;color:#7c3aed">'+ap.ready+'</td>'+
+    '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+apPct+'%"></div></div></td>'+
+  '</tr>';
+
+  var verifRow='<tr style="background:#f8fafc"><td colspan="7" style="padding:6px 12px;font-size:9px;color:#64748b">'+
+    '<span style="font-weight:700">Verification:</span> '+ap.total+' = '+ap.closed+' closed + '+ap.active+' active + '+ap.newCount+' new + '+ap.ready+' ready'+
+    ' &nbsp;<span style="color:'+(verified?'#16a34a':'#ef4444')+';font-weight:700">'+(verified?'✓ Verified':'⚠ Mismatch')+'</span>'+
+  '</td></tr>';
+
+  return '<div style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:10px">'+
+    '<table style="width:100%;border-collapse:collapse">'+
+    '<thead><tr style="background:#f1f5f9">'+
+      '<th style="padding:6px 12px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Iteration</th>'+
+      '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Total</th>'+
+      '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#16a34a">Closed</th>'+
+      '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#2563eb">Active</th>'+
+      '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569">New</th>'+
+      '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed">Ready</th>'+
+      '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Progress</th>'+
+    '</tr></thead>'+
+    '<tbody>'+rowsHtml+totRow+verifRow+'</tbody>'+
+    '</table></div>';
+}
+
+// Called from inline onclick - looks up stories from global store
+function showIterStoriesFromStore(evt, storeKey, apPath, iter, stateFilter){
+  var stories = window._storyStore[storeKey];
+  if(!stories){console.warn('No stories in store for key:', storeKey); return;}
+  showIterStories(evt, stories, apPath, iter, stateFilter);
 }
 
 
@@ -772,7 +727,7 @@ function renderLiveCard(data,conn,cat,cardId,mode){
         '<span class="apc apc-new">'+ap.newCount+' new</span>'+
         '<span class="apc apc-ready">'+ap.ready+' ready</span>'+
       '</div><span class="caret" id="caret-'+apk+'" style="font-size:10px;margin-left:6px">\u25BC</span></div>'+
-      '<div id="sz-'+apk+'" style="display:none;margin:0 0 8px 20px">'+buildIterTable(data.stories,ap)+'</div>';
+      '<div id="sz-'+apk+'" style="display:none;margin:0 0 8px 20px">'+buildIterTable(data.stories,ap,'store_'+data.id+'_'+i)+'</div>';
   }).join('');
   var tClosed=data.areaPaths.reduce(function(a,s){return a+s.closed;},0);
   var tActive=data.areaPaths.reduce(function(a,s){return a+s.active;},0);
