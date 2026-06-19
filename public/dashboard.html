@@ -879,8 +879,13 @@ function doPin(id,title){
   if(fullData){
     // Use renderLiveCard with full ADO data
     var newCard=renderLiveCard(fullData,conn,cat,'live-'+id,'pinned');
-    if(newSra&&newSra.nextSibling) contentEl.insertBefore(newCard,newSra.nextSibling);
-    else contentEl.insertBefore(newCard,contentEl.firstChild);
+    // Safe insert: append after search-result-area if possible, else at top
+    var sraEl=document.getElementById('search-result-area');
+    if(sraEl&&sraEl.parentNode===contentEl&&sraEl.nextSibling){
+      contentEl.insertBefore(newCard,sraEl.nextSibling);
+    } else {
+      contentEl.appendChild(newCard);
+    }
   } else {
     // Fallback: create card from currentSearchData
     var sd=window.currentSearchData&&String(window.currentSearchData.id)===String(id)?window.currentSearchData:null;
@@ -924,8 +929,13 @@ function doPin(id,title){
       '</div>'+
       '<span class="caret">&#9660;</span>'+
     '</div>';
-    if(newSra&&newSra.nextSibling) contentEl.insertBefore(newCard,newSra.nextSibling);
-    else contentEl.insertBefore(newCard,contentEl.firstChild);
+    // Safe insert: append after search-result-area if possible, else at top
+    var sraEl=document.getElementById('search-result-area');
+    if(sraEl&&sraEl.parentNode===contentEl&&sraEl.nextSibling){
+      contentEl.insertBefore(newCard,sraEl.nextSibling);
+    } else {
+      contentEl.appendChild(newCard);
+    }
   }
 
   // Switch view to the connector+category
