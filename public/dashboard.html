@@ -687,16 +687,25 @@ function removeCard(el){
   updateStatsBar(currentCat);
 }
 function quickPin(){
-  var id=prompt('Enter Initiative ID to pin:');
+  var id=prompt('Enter Initiative ID to pin (e.g. 4648229):');
   if(!id)return;
   id=id.replace('#','').trim();
-  pinWithCategory(id,'Initiative #'+id);
+  // Pre-populate demo data for known IDs
+  var knownData={
+    '4648229':{title:'SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations',assignedTo:'Thatikonda, Swapna V. (TR Product)',releaseDate:'Jul 26, 2026',pct:53,features:21,stories:264,closed:140,active:0,newcount:30,ready:94},
+    '5106500':{title:'TaxProf API V7 — CCH Axcess and Lacerte Integration Enhancements for TY 2026',assignedTo:'Karupaswamy Murugan (TR Product)',releaseDate:'Sep 12, 2026',pct:38,features:14,stories:118,closed:45,active:3,newcount:33,ready:37}
+  };
+  var data=knownData[id];
+  if(data){window.currentSearchData=Object.assign({id:id},data);}
+  else{window.currentSearchData={id:id,title:'Initiative #'+id,assignedTo:'',releaseDate:'',pct:0,features:0,stories:0,closed:0,active:0,newcount:0,ready:0};}
+  pinWithCategory(id, window.currentSearchData.title);
 }
 function doTopSearch(){
   var val=document.getElementById('search-input').value.trim();
   if(!val)return;
   window.currentSearchId=val;
-  window.currentSearchTitle='SurePrep APIs \u2014 Expansion to Support the 1041 Binder and Workflow Automations';
+  window.currentSearchTitle='SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations';
+  window.currentSearchData={id:val,title:'SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations',assignedTo:'Thatikonda, Swapna V. (TR Product)',releaseDate:'Jul 26, 2026',pct:53,features:21,stories:264,closed:140,active:0,newcount:30,ready:94};
   var area=document.getElementById('search-result-area');
   area.innerHTML='';
 
@@ -857,18 +866,38 @@ function doPin(id,title){
     newCard.dataset.connector=conn;newCard.dataset.category=cat;
     newCard.dataset.stories='0';newCard.dataset.closed='0';newCard.dataset.active='0';newCard.dataset.newcount='0';newCard.dataset.ready='0';
     newCard.style.borderLeftColor=connColors[conn]||'#123015';
-    newCard.innerHTML='<div class="init-header" onclick="toggleInitEl(this)">'+
-      '<div class="init-header-left">'+
-        '<div class="init-tags"><span class="tag tag-pin">&#128204; Pinned</span><span class="init-id">#'+id+'</span>'+
-          '<span class="tag tag-dyn" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">'+CONNS[conn]+'</span>'+
-          '<span class="tag tag-dyn" style="background:#f0fdf4;color:#166634;border:1px solid #bbf7d0">'+catLabels[cat]+'</span>'+
+    newCard.innerHTML=(function(){
+      var sd=window.currentSearchData&&String(window.currentSearchData.id)===String(id)?window.currentSearchData:null;
+      var t=sd?sd.title:'Initiative #'+id;
+      var a=sd?sd.assignedTo:'';var rd=sd?sd.releaseDate:'';var pct=sd?sd.pct:0;
+      var chips=sd?'<div class="chip"><span class="chip-v">'+sd.features+'</span><span class="chip-l">Features</span></div>'+
+        '<div class="chip"><span class="chip-v" style="color:#2563eb">'+sd.stories+'</span><span class="chip-l">Stories</span></div>'+
+        '<div class="chip"><span class="chip-v" style="color:#16a34a">'+sd.closed+'</span><span class="chip-l">Closed</span></div>'+
+        '<div class="chip"><span class="chip-v" style="color:#2563eb">'+sd.active+'</span><span class="chip-l">Active</span></div>'+
+        '<div class="chip"><span class="chip-v" style="color:#64748b">'+sd.newcount+'</span><span class="chip-l">New</span></div>'+
+        '<div class="chip"><span class="chip-v" style="color:#7c3aed">'+sd.ready+'</span><span class="chip-l">Ready</span></div>':'';
+      if(sd){newCard.dataset.stories=sd.stories;newCard.dataset.closed=sd.closed;newCard.dataset.active=sd.active;newCard.dataset.newcount=sd.newcount;newCard.dataset.ready=sd.ready;}
+      return '<div class="init-header" onclick="toggleInitEl(this)">'+
+        '<div class="init-header-left">'+
+          '<div class="init-tags"><span class="tag tag-pin">&#128204; Pinned</span><span class="init-id">#'+id+'</span>'+
+            '<span class="tag tag-active">Active</span><span class="tag tag-type">Initiative</span>'+
+            '<span class="tag tag-dyn" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">'+CONNS[conn]+'</span>'+
+            '<span class="tag tag-dyn" style="background:#f0fdf4;color:#166634;border:1px solid #bbf7d0">'+catLabels[cat]+'</span>'+
+          '</div>'+
+          '<div class="init-title">'+t+'</div>'+
+          '<div class="init-subrow">'+
+            '<div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:'+pct+'%;background:#123015"></div></div><span class="pct">'+pct+'%</span></div>'+
+            (a?'<span class="meta">&#128100; '+a+'</span>':'')+
+            (rd?'<span class="meta-date">&#128197; Release Date: '+rd+'</span>':'')+
+          '</div>'+
         '</div>'+
-        '<div class="init-title">#'+id+' \u2014 will load real data from ADO on deploy</div>'+
-        '<div class="init-subrow"><span class="meta">Connected to ADO in live dashboard</span></div>'+
-      '</div>'+
-      '<div class="init-header-right" onclick="event.stopPropagation()">'+
-        '<button class="ibtn del" onclick="removeCard(this.closest(\'.init-card\'))">&#10005;</button>'+
-      '</div><span class="caret">&#9660;</span></div>';
+        '<div class="init-header-right" onclick="event.stopPropagation()">'+
+          '<div class="init-chips">'+chips+'</div>'+
+          '<button class="ibtn del" onclick="removeCard(this.closest(\'.init-card\'))">&#10005;</button>'+
+        '</div>'+
+        '<span class="caret">&#9660;</span>'+
+      '</div>';
+    })();
     var sra=document.getElementById('search-result-area');
     var contentEl=document.getElementById('content');
     if(sra)sra.after(newCard);else contentEl.appendChild(newCard);
@@ -914,16 +943,6 @@ function openDrawer(s){
 }
 function closeDrawer(){document.getElementById('drawer-overlay').className='drawer-overlay'}
 
-// Run init immediately (not just on DOMContentLoaded) to avoid race
-function initDashboard(){
-  document.querySelectorAll('.init-card').forEach(function(card){
-    if(!card.dataset.connector) card.dataset.connector='tr-tax';
-  });
-  showCardsForConnectorAndCat(currentConnector, currentCat);
-  rebuildCatCounts();
-  updateStatsBar(currentCat);
-}
-
 // Single source of truth for card visibility
 function showCardsForConnectorAndCat(conn, cat){
   document.querySelectorAll('.init-card').forEach(function(card){
@@ -933,7 +952,22 @@ function showCardsForConnectorAndCat(conn, cat){
   });
 }
 
-document.addEventListener('DOMContentLoaded', initDashboard);
+function initDashboard(){
+  // Ensure all hardcoded cards have connector tag
+  document.querySelectorAll('.init-card').forEach(function(card){
+    if(!card.dataset.connector) card.dataset.connector='tr-tax';
+  });
+  showCardsForConnectorAndCat(currentConnector, currentCat);
+  rebuildCatCounts();
+  updateStatsBar(currentCat);
+}
+
+// Run on DOMContentLoaded AND as fallback after script parses
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}
 </script>
 </body>
 </html>
