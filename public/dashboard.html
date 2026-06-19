@@ -463,14 +463,35 @@ function showIterStories(evt, stories, apPath, iter, stateFilter){
   evt.stopPropagation();
   function cls(s){if(['Closed','Resolved'].indexOf(s)>-1)return 'closed';if(s==='Active')return 'active';if(s==='Ready')return 'ready';return 'new';}
   // Filter stories
+  // Match by iteration (last 2 parts) + optional state + area path
+  var apLeaf=apPath.split('\\').pop();
   var filtered=stories.filter(function(s){
     var sap=s.fields['System.AreaPath']||'';
-    var matchAP=sap===apPath||sap.split('\\').pop()===apPath.split('\\').pop();
-    var siter=(s.fields['System.IterationPath']||'').split('\\').slice(-2).join('\\');
-    var matchIter=siter===iter;
+    var sapLeaf=sap.split('\\').pop();
+    // Match area path by leaf name (handles different full paths with same team name)
+    var matchAP=sap===apPath||sapLeaf===apLeaf||sap.indexOf(apLeaf)>-1;
+    var siterFull=s.fields['System.IterationPath']||'';
+    // Match iteration: check if any suffix of the full path matches
+    var siterParts=siterFull.split('\\');
+    var siter2=siterParts.slice(-2).join('\\');
+    var siter1=siterParts.slice(-1).join('\\');
+    var iterParts=iter.split('\\');
+    var matchIter=siter2===iter||siter1===iter||siterFull.indexOf(iterParts[iterParts.length-1])>-1;
     var matchState=!stateFilter||cls(s.fields['System.State'])===stateFilter;
     return matchAP&&matchIter&&matchState;
   });
+  // Fallback: if nothing matches, try without area path filter
+  if(!filtered.length){
+    filtered=stories.filter(function(s){
+      var siterFull=s.fields['System.IterationPath']||'';
+      var siterParts=siterFull.split('\\');
+      var siter2=siterParts.slice(-2).join('\\');
+      var iterParts=iter.split('\\');
+      var matchIter=siter2===iter||siterFull.indexOf(iterParts[iterParts.length-1])>-1;
+      var matchState=!stateFilter||cls(s.fields['System.State'])===stateFilter;
+      return matchIter&&matchState;
+    });
+  }
   if(!filtered.length){alert('No stories found for this filter.');return;}
 
   // Build modal
