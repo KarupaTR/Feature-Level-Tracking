@@ -284,277 +284,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <div id="view-pinned">
 
       <div id="search-result-area"></div>
-
-      <!-- INITIATIVE 1 -->
-      <div class="init-card" id="card-1" data-connector="tr-tax" data-category="sureprep" data-stories="264" data-closed="140" data-active="0" data-newcount="30" data-ready="94" data-stories="264" data-closed="140" data-active="0" data-newcount="30" data-ready="94">
-        <div class="init-header" onclick="toggleInit('1')">
-          <div class="init-header-left">
-            <div class="init-tags">
-              <span class="tag tag-pin">📌 Pinned</span>
-              <span class="init-id">#4648229</span>
-              <span class="tag tag-active">Active</span>
-              <span class="tag tag-type">Initiative</span>
-            </div>
-            <div class="init-title">SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations</div>
-            <div class="init-subrow">
-              <div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:53%;background:#123015"></div></div><span class="pct">53%</span></div>
-              <span class="meta">👤 Thatikonda, Swapna V. (TR Product)</span>
-              <span class="meta-date">📅 Release Date: Jul 26, 2026</span>
-            </div>
-          </div>
-          <div class="init-header-right" onclick="event.stopPropagation()">
-            <div class="init-chips">
-              <div class="chip"><span class="chip-v">21</span><span class="chip-l">Features</span></div>
-              <div class="chip"><span class="chip-v" style="color:#2563eb">264</span><span class="chip-l">Stories</span></div>
-              <div class="chip"><span class="chip-v" style="color:#16a34a">140</span><span class="chip-l">Closed</span></div>
-              <div class="chip"><span class="chip-v" style="color:#2563eb">0</span><span class="chip-l">Active</span></div>
-              <div class="chip"><span class="chip-v" style="color:#64748b">30</span><span class="chip-l">New</span></div>
-              <div class="chip"><span class="chip-v" style="color:#7c3aed">94</span><span class="chip-l">Ready</span></div>
-            </div>
-            <button class="ibtn del" onclick="removeCard(this.closest('.init-card'))" title="Unpin">✕</button>
-          </div>
-          <span class="caret" id="caret-1">▼</span>
-        </div>
-        <div class="init-body" id="body-1">
-          <div class="inner-tab-bar">
-            <div class="inner-tab active" onclick="switchTab('1','feat',this)">≡ Features (21)</div>
-            <div class="inner-tab" onclick="switchTab('1','ap',this)">🗺 Area Paths (5)</div>
-          </div>
-          <div class="tab-panel active" id="tab-1-feat">
-            <div class="feat-zone">
-              <!-- FEATURE 1 -->
-              <div class="feat-card">
-                <div class="feat-header" onclick="toggleFeatEl(this)">
-                  <span style="font-size:12px;color:#16a34a;flex-shrink:0">⑂</span>
-                  <div style="flex:1;min-width:0">
-                    <div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#5106586</span><span class="feat-title">GoSystem 1041 Rollforward and Auto Creation — API V7 Support</span></div>
-                    <div class="feat-meta">
-                      <div class="prog-row"><div class="pbar" style="width:60px"><div class="pfill" style="width:67%;background:#16a34a"></div></div><span class="pct" style="color:#86efac">67%</span></div>
-                      <span class="feat-meta-text">18/27 closed</span>
-                      <span style="font-size:9px;color:#2563eb;font-weight:600">3 active</span>
-                      <span style="font-size:9px;color:#d97706">&#128197; Release: Jul 2026</span>
-                      <span class="feat-state fs-active">Active</span>
-                    </div>
-                  </div>
-                  <span class="feat-count">27</span><span class="caret" id="caret-f1a" style="font-size:10px">▼</span>
-                </div>
-                <div class="story-zone" id="sz-f1a">
-                  <div class="story-filter-bar">
-                    <input class="sf-input" placeholder="Search stories…"/>
-                    <select class="sf-select"><option>All states</option><option>Active</option><option>Ready</option><option>New</option><option>Closed</option></select>
-                    <span class="sf-count">4 stories</span>
-                  </div>
-                  <div class="story-table-wrap"><table class="story-table">
-                    <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>State</th><th>Area Path</th><th>Iteration</th><th>Assigned To</th><th>PI Release Date</th></tr></thead>
-                    <tbody>
-                      <tr onclick="openDrawer({id:5234817,title:'As an API consumer, I want to submit a 1041 binder via GoSystem with valid tax year',state:'Active',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S12',assigned:'Priyanka Patil',pi:'Jul 26, 2026'})"><td><span class="s-id">#5234817</span></td><td><span class="s-title">As an API consumer, submit a 1041 binder via GoSystem with valid tax year</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-active">Active</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S12_Jun03-Jun16">TaxProf\2026\2026_S12_Jun03-Jun16</span></td><td><span class="s-muted">Priyanka Patil</span></td><td><span class="s-muted">Jul 26, 2026</span></td></tr>
-                      <tr onclick="openDrawer({id:5234820,title:'Rollforward to create new 1041 binder from prior year data',state:'Ready',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S12',assigned:'Karandeep Singh',pi:'Jul 26, 2026'})"><td><span class="s-id">#5234820</span></td><td><span class="s-title">Rollforward to create new 1041 binder from prior year data</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-ready">Ready</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S12_Jun03-Jun16">TaxProf\2026\2026_S12_Jun03-Jun16</span></td><td><span class="s-muted">Karandeep Singh</span></td><td><span class="s-muted">Jul 26, 2026</span></td></tr>
-                      <tr onclick="openDrawer({id:5234825,title:'Investigation: GoSystem 1041 auto-creation field mapping analysis',state:'New',type:'Task',area:'surePrep-sdp-isquad',iter:'2026_S13',assigned:'Prakash Kokate',pi:null})"><td><span class="s-id">#5234825</span></td><td><span class="s-title">Investigation: GoSystem 1041 auto-creation field mapping analysis</span></td><td><span class="s-pill p-task">Task</span></td><td><span class="s-pill p-new">New</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S13_Jun17-Jun30">TaxProf\2026\2026_S13_Jun17-Jun30</span></td><td><span class="s-muted">Prakash Kokate</span></td><td><span class="s-muted">—</span></td></tr>
-                      <tr onclick="openDrawer({id:5234830,title:'Error handling when GoSystem 1041 submission fails validation',state:'Closed',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S11',assigned:'Priyanka Patil',pi:'Jun 16, 2026'})"><td><span class="s-id">#5234830</span></td><td><span class="s-title">Error handling when GoSystem 1041 submission fails validation</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-closed">Closed</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S11_May20-Jun02">TaxProf\2026\2026_S11_May20-Jun02</span></td><td><span class="s-muted">Priyanka Patil</span></td><td><span class="s-muted">Jun 16, 2026</span></td></tr>
-                    </tbody>
-                  </table></div>
-                </div>
-              </div>
-              <!-- FEATURE 2 -->
-              <div class="feat-card">
-                <div class="feat-header" onclick="toggleFeatEl(this)">
-                  <span style="font-size:12px;color:#16a34a;flex-shrink:0">⑂</span>
-                  <div style="flex:1;min-width:0">
-                    <div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#5207111</span><span class="feat-title">UltraTax CS — Add Document Basic Info Field Validation (API V7)</span></div>
-                    <div class="feat-meta">
-                      <div class="prog-row"><div class="pbar" style="width:60px"><div class="pfill" style="width:45%;background:#16a34a"></div></div><span class="pct" style="color:#86efac">45%</span></div>
-                      <span class="feat-meta-text">9/20 closed</span><span style="font-size:9px;color:#2563eb;font-weight:600">2 active</span><span class="feat-state fs-active">Active</span>
-                    </div>
-                  </div>
-                  <span class="feat-count">20</span><span class="caret" id="caret-f1b" style="font-size:10px">▼</span>
-                </div>
-                <div class="story-zone" id="sz-f1b">
-                  <div class="story-filter-bar"><input class="sf-input" placeholder="Search…"/><span class="sf-count">3 stories</span></div>
-                  <div class="story-table-wrap"><table class="story-table">
-                    <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>State</th><th>Area Path</th><th>Iteration</th><th>Assigned To</th><th>PI Release Date</th></tr></thead>
-                    <tbody>
-                      <tr onclick="openDrawer({id:5310001,title:'Basic Information fields validated on Add Document API call',state:'Active',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S11',assigned:'Atish Angre',pi:'Jul 26, 2026'})"><td><span class="s-id">#5310001</span></td><td><span class="s-title">Basic Information fields validated on Add Document API call</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-active">Active</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S11_May20-Jun02">TaxProf\2026\2026_S11_May20-Jun02</span></td><td><span class="s-muted">Atish Angre</span></td><td><span class="s-muted">Jul 26, 2026</span></td></tr>
-                      <tr onclick="openDrawer({id:5310002,title:'Investigation: UltraTax ScanPro field parity gap analysis',state:'Ready',type:'Task',area:'surePrep-tsi-maple',iter:'2026_S12',assigned:'Vikas Kothari',pi:null})"><td><span class="s-id">#5310002</span></td><td><span class="s-title">Investigation: UltraTax ScanPro field parity gap analysis</span></td><td><span class="s-pill p-task">Task</span></td><td><span class="s-pill p-ready">Ready</span></td><td><span class="s-muted">surePrep-tsi-maple</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S12_Jun03-Jun16">TaxProf\2026\2026_S12_Jun03-Jun16</span></td><td><span class="s-muted">Vikas Kothari</span></td><td><span class="s-muted">—</span></td></tr>
-                      <tr onclick="openDrawer({id:5310010,title:'Resubmit via API for send-back binders — 1040 form type',state:'New',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S13',assigned:'Unassigned',pi:null})"><td><span class="s-id">#5310010</span></td><td><span class="s-title">Resubmit via API for send-back binders — 1040 form type</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-new">New</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S13_Jun17-Jun30">TaxProf\2026\2026_S13_Jun17-Jun30</span></td><td><span class="s-muted" style="color:#cbd5e1">Unassigned</span></td><td><span class="s-muted">—</span></td></tr>
-                    </tbody>
-                  </table></div>
-                </div>
-              </div>
-              <!-- FEATURE 3 -->
-              <div class="feat-card">
-                <div class="feat-header" onclick="toggleFeatEl(this)">
-                  <span style="font-size:12px;color:#16a34a;flex-shrink:0">⑂</span>
-                  <div style="flex:1;min-width:0">
-                    <div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#5483716</span><span class="feat-title">QA Validation — Auto Creation and Rollforward (GoSystem + CCH)</span></div>
-                    <div class="feat-meta">
-                      <div class="prog-row"><div class="pbar" style="width:60px"><div class="pfill" style="width:20%;background:#16a34a"></div></div><span class="pct" style="color:#86efac">20%</span></div>
-                      <span class="feat-meta-text">2/10 closed</span><span style="font-size:9px;color:#7c3aed;font-weight:600">8 ready</span><span class="feat-state fs-new">New</span>
-                    </div>
-                  </div>
-                  <span class="feat-count">10</span><span class="caret" id="caret-f1c" style="font-size:10px">▼</span>
-                </div>
-                <div class="story-zone" id="sz-f1c">
-                  <div class="story-filter-bar"><input class="sf-input" placeholder="Search…"/><span class="sf-count">2 stories</span></div>
-                  <div class="story-table-wrap"><table class="story-table">
-                    <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>State</th><th>Area Path</th><th>Iteration</th><th>Assigned To</th><th>PI Release Date</th></tr></thead>
-                    <tbody>
-                      <tr onclick="openDrawer({id:5483720,title:'Verify Auto Creation creates binder correctly in GoSystem',state:'Ready',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S13',assigned:'Karandeep Singh',pi:'Jul 26, 2026'})"><td><span class="s-id">#5483720</span></td><td><span class="s-title">Verify Auto Creation creates binder correctly in GoSystem</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-ready">Ready</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S13_Jun17-Jun30">TaxProf\2026\2026_S13_Jun17-Jun30</span></td><td><span class="s-muted">Karandeep Singh</span></td><td><span class="s-muted">Jul 26, 2026</span></td></tr>
-                      <tr onclick="openDrawer({id:5483725,title:'Verify Rollforward creates 1041 binder in CCH Axcess correctly',state:'Ready',type:'User Story',area:'surePrep-sdp-isquad',iter:'2026_S13',assigned:'Prakash Kokate',pi:'Jul 26, 2026'})"><td><span class="s-id">#5483725</span></td><td><span class="s-title">Verify Rollforward creates 1041 binder in CCH Axcess correctly</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-ready">Ready</span></td><td><span class="s-muted">surePrep-sdp-isquad</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S13_Jun17-Jun30">TaxProf\2026\2026_S13_Jun17-Jun30</span></td><td><span class="s-muted">Prakash Kokate</span></td><td><span class="s-muted">Jul 26, 2026</span></td></tr>
-                    </tbody>
-                  </table></div>
-                </div>
-              </div>
-              <div style="text-align:center;padding:8px;font-size:10px;color:#86efac;cursor:pointer;border:1px dashed #bbf7d0;border-radius:8px;background:#f0fdf4">+ 18 more features in this initiative</div>
-            </div>
-          </div>
-          <!-- AREA PATHS TAB -->
-          <div class="tab-panel" id="tab-1-ap">
-            <div class="ap-zone">
-              <div class="ap-row" onclick="toggleAP('ap1a')">
-                <span class="ap-dot" style="background:#123015"></span>
-                <div style="flex:1;min-width:0">
-                  <div class="ap-name">surePrep-sdp-isquad</div>
-                  <div class="ap-path">TaxProf\surePrep\components\Submission and Document Processing\surePrep-sdp-isquad</div>
-                  <div class="ap-pbar"><div class="ap-pfill" style="width:46%"></div></div>
-                </div>
-                <div class="ap-chips" onclick="event.stopPropagation()">
-                  <span class="apc apc-total">185 total</span><span class="apc apc-closed">94 closed</span><span class="apc apc-active">0 active</span><span class="apc apc-new">14 new</span><span class="apc apc-ready">77 ready</span>
-                </div>
-                <span class="caret" id="caret-ap1a" style="font-size:10px;margin-left:6px">▼</span>
-              </div>
-              <div id="sz-ap1a" style="display:none;margin:0 0 8px 20px">
-                <div class="ap-iter-wrap"><table class="ap-iter-table">
-                  <thead><tr><th style="text-align:left">Iteration</th><th>Total</th><th style="color:#16a34a">Closed</th><th style="color:#2563eb">Active</th><th>New</th><th style="color:#7c3aed">Ready</th><th>Progress</th></tr></thead>
-                  <tbody>
-                    <tr><td>2026_S04_Feb11-Feb24</td><td><span class="cn">2</span></td><td><span class="cn cn-g">2</span></td><td><span class="cn-0">0</span></td><td><span class="cn-0">0</span></td><td><span class="cn-0">0</span></td><td><div class="pbar" style="width:80px;display:block"><div class="pfill" style="width:100%;background:#16a34a"></div></div></td></tr>
-                    <tr><td>2026_S05_Feb25-Mar10</td><td><span class="cn">13</span></td><td><span class="cn cn-g">13</span></td><td><span class="cn-0">0</span></td><td><span class="cn-0">0</span></td><td><span class="cn-0">0</span></td><td><div class="pbar" style="width:80px;display:block"><div class="pfill" style="width:100%;background:#16a34a"></div></div></td></tr>
-                    <tr><td>2026_S06_Mar11-Mar24</td><td><span class="cn">10</span></td><td><span class="cn cn-g">9</span></td><td><span class="cn cn-b">1</span></td><td><span class="cn-0">0</span></td><td><span class="cn-0">0</span></td><td><div class="pbar" style="width:80px;display:block"><div class="pfill" style="width:90%;background:#16a34a"></div></div></td></tr>
-                    <tr><td>2026_S12_Jun03-Jun16</td><td><span class="cn">22</span></td><td><span class="cn cn-g">21</span></td><td><span class="cn-0">0</span></td><td><span class="cn cn-s">1</span></td><td><span class="cn-0">0</span></td><td><div class="pbar" style="width:80px;display:block"><div class="pfill" style="width:95%;background:#16a34a"></div></div></td></tr>
-                    <tr><td>2026_S13_Jun17-Jun30</td><td><span class="cn">18</span></td><td><span class="cn-0">0</span></td><td><span class="cn-0">0</span></td><td><span class="cn cn-s">5</span></td><td><span class="cn cn-v">13</span></td><td><div class="pbar" style="width:80px;display:block"><div class="pfill" style="width:0%;background:#16a34a"></div></div></td></tr>
-                    <tr><td>Total</td><td><b>185</b></td><td><b class="cn-g">94</b></td><td><b class="cn-b">0</b></td><td><b class="cn-s">14</b></td><td><b class="cn-v">77</b></td><td><div class="pbar" style="width:80px;display:block"><div class="pfill" style="width:46%;background:#16a34a"></div></div></td></tr>
-                  </tbody>
-                </table></div>
-              </div>
-              <div class="ap-row" onclick="toggleAP('ap1b')">
-                <span class="ap-dot" style="background:#1e40af"></span>
-                <div style="flex:1;min-width:0"><div class="ap-name">surePrep-tsi-maple</div><div class="ap-path">TaxProf\surePrep\components\Tax Software Integration\surePrep-tsi-maple</div><div class="ap-pbar"><div class="ap-pfill" style="width:49%"></div></div></div>
-                <div class="ap-chips" onclick="event.stopPropagation()"><span class="apc apc-total">55 total</span><span class="apc apc-closed">27 closed</span><span class="apc apc-new">14 new</span><span class="apc apc-ready">14 ready</span></div>
-                <span class="caret" id="caret-ap1b" style="font-size:10px;margin-left:6px">▼</span>
-              </div>
-              <div id="sz-ap1b" style="display:none;margin:0 0 8px 20px;padding:10px;font-size:10px;color:#94a3b8;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">Iteration breakdown for surePrep-tsi-maple loads here in the live dashboard.</div>
-              <div class="ap-row" onclick="toggleAP('ap1c')">
-                <span class="ap-dot" style="background:#7c3aed"></span>
-                <div style="flex:1;min-width:0"><div class="ap-name">surePrep-sdp-sunflower</div><div class="ap-path">TaxProf\surePrep\components\Submission and Document Processing\surePrep-sdp-sunflower</div><div class="ap-pbar"><div class="ap-pfill" style="width:88%"></div></div></div>
-                <div class="ap-chips" onclick="event.stopPropagation()"><span class="apc apc-total">16 total</span><span class="apc apc-closed">14 closed</span><span class="apc apc-new">0 new</span><span class="apc apc-ready">2 ready</span></div>
-                <span class="caret" id="caret-ap1c" style="font-size:10px;margin-left:6px">▼</span>
-              </div>
-              <div id="sz-ap1c" style="display:none;margin:0 0 8px 20px;padding:10px;font-size:10px;color:#94a3b8;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">Iteration breakdown for surePrep-sdp-sunflower.</div>
-              <div style="padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;margin-top:4px">
-                <span style="font-size:10px;font-weight:700;color:#64748b">✓ Verification:</span>
-                <span style="font-size:10px;color:#64748b">264 total = 140 closed + 0 active + 30 new + 94 ready</span>
-                <span style="margin-left:auto;font-size:10px;font-weight:700;color:#16a34a">✓ Counts verified</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- INITIATIVE 2 -->
-      <div class="init-card" id="card-2" data-connector="tr-tax" data-category="ultratax" data-stories="118" data-closed="45" data-active="3" data-newcount="33" data-ready="37" data-stories="118" data-closed="45" data-active="3" data-newcount="33" data-ready="37" style="border-left-color:#1e40af">
-        <div class="init-header" onclick="toggleInit('2')">
-          <div class="init-header-left">
-            <div class="init-tags"><span class="tag tag-pin">📌 Pinned</span><span class="init-id">#5106500</span><span class="tag tag-active">Active</span><span class="tag tag-type">Initiative</span></div>
-            <div class="init-title">TaxProf API V7 — CCH Axcess and Lacerte Integration Enhancements for TY 2026</div>
-            <div class="init-subrow">
-              <div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:38%;background:#1e40af"></div></div><span class="pct">38%</span></div>
-              <span class="meta">👤 Karupaswamy Murugan (TR Product)</span>
-              <span class="meta-date">📅 Release Date: Sep 12, 2026</span>
-            </div>
-          </div>
-          <div class="init-header-right" onclick="event.stopPropagation()">
-            <div class="init-chips">
-              <div class="chip"><span class="chip-v">14</span><span class="chip-l">Features</span></div>
-              <div class="chip"><span class="chip-v" style="color:#2563eb">118</span><span class="chip-l">Stories</span></div>
-              <div class="chip"><span class="chip-v" style="color:#16a34a">45</span><span class="chip-l">Closed</span></div>
-              <div class="chip"><span class="chip-v" style="color:#2563eb">3</span><span class="chip-l">Active</span></div>
-              <div class="chip"><span class="chip-v" style="color:#64748b">33</span><span class="chip-l">New</span></div>
-              <div class="chip"><span class="chip-v" style="color:#7c3aed">37</span><span class="chip-l">Ready</span></div>
-            </div>
-            <button class="ibtn del" onclick="removeCard(this.closest('.init-card'))" title="Unpin">✕</button>
-          </div>
-          <span class="caret" id="caret-2">▼</span>
-        </div>
-        <div class="init-body" id="body-2">
-          <div class="inner-tab-bar">
-            <div class="inner-tab active" onclick="switchTab('2','feat',this)">≡ Features (14)</div>
-            <div class="inner-tab" onclick="switchTab('2','ap',this)">🗺 Area Paths (3)</div>
-          </div>
-          <div class="tab-panel active" id="tab-2-feat">
-            <div class="feat-zone">
-              <div class="feat-card">
-                <div class="feat-header" onclick="toggleFeatEl(this)">
-                  <span style="font-size:12px;color:#16a34a;flex-shrink:0">⑂</span>
-                  <div style="flex:1;min-width:0">
-                    <div style="display:flex;align-items:center;gap:6px"><span class="feat-id">#5400001</span><span class="feat-title">Lacerte SDK Download — Informational Card and CSD File Warning Dialog</span></div>
-                    <div class="feat-meta">
-                      <div class="prog-row"><div class="pbar" style="width:60px"><div class="pfill" style="width:80%;background:#16a34a"></div></div><span class="pct" style="color:#86efac">80%</span></div>
-                      <span class="feat-meta-text">8/10 closed</span><span style="font-size:9px;color:#7c3aed;font-weight:600">2 ready</span><span class="feat-state fs-active">Active</span>
-                    </div>
-                  </div>
-                  <span class="feat-count">10</span><span class="caret" id="caret-f2a" style="font-size:10px">▼</span>
-                </div>
-                <div class="story-zone" id="sz-f2a">
-                  <div class="story-filter-bar"><input class="sf-input" placeholder="Search…"/><span class="sf-count">2 stories</span></div>
-                  <div class="story-table-wrap"><table class="story-table">
-                    <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>State</th><th>Area Path</th><th>Iteration</th><th>Assigned To</th><th>PI Release Date</th></tr></thead>
-                    <tbody>
-                      <tr onclick="openDrawer({id:5400010,title:'Lacerte SDK informational card shown before first download',state:'Ready',type:'User Story',area:'surePrep-tsi-maple',iter:'2026_S11',assigned:'Sujit Modi',pi:'Sep 12, 2026'})"><td><span class="s-id">#5400010</span></td><td><span class="s-title">Lacerte SDK informational card shown before first download</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-ready">Ready</span></td><td><span class="s-muted">surePrep-tsi-maple</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S11_May20-Jun02">TaxProf\2026\2026_S11_May20-Jun02</span></td><td><span class="s-muted">Sujit Modi</span></td><td><span class="s-muted">Sep 12, 2026</span></td></tr>
-                      <tr onclick="openDrawer({id:5400011,title:'CSD file warning dialog displayed when ENCR file detected',state:'Closed',type:'User Story',area:'surePrep-tsi-maple',iter:'2026_S10',assigned:'Danish Javed',pi:'Sep 12, 2026'})"><td><span class="s-id">#5400011</span></td><td><span class="s-title">CSD file warning dialog displayed when ENCR file detected</span></td><td><span class="s-pill p-us">User Story</span></td><td><span class="s-pill p-closed">Closed</span></td><td><span class="s-muted">surePrep-tsi-maple</span></td><td><span class="s-muted" title="TaxProf\2026\2026_S10_May06-May19">TaxProf\2026\2026_S10_May06-May19</span></td><td><span class="s-muted">Danish Javed</span></td><td><span class="s-muted">Sep 12, 2026</span></td></tr>
-                    </tbody>
-                  </table></div>
-                </div>
-              </div>
-              <div style="text-align:center;padding:8px;font-size:10px;color:#86efac;cursor:pointer;border:1px dashed #bbf7d0;border-radius:8px;background:#f0fdf4">+ 13 more features in this initiative</div>
-            </div>
-          </div>
-          <div class="tab-panel" id="tab-2-ap">
-            <div class="ap-zone" style="color:#94a3b8;font-size:11px;padding:16px">Area path breakdown loads here in the live dashboard.</div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- SEARCH VIEW -->
-    <div id="view-search" style="display:none">
-      <!-- Centered search bar -->
-      <div style="display:flex;flex-direction:column;align-items:center;padding:28px 16px 20px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:18px">🔍</span>
-          <span style="font-size:15px;font-weight:700;color:#0f172a">Search Initiatives</span>
-        </div>
-        <p style="font-size:11px;color:#94a3b8;margin-bottom:16px">Session only — results are cleared on refresh. Pin to save permanently.</p>
-        <div style="display:flex;align-items:center;width:100%;max-width:480px;height:42px;border:1.5px solid #e2e8f0;border-radius:11px;background:#fff;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:border .15s" onfocusin="this.style.borderColor='#3b82f6'" onfocusout="this.style.borderColor='#e2e8f0'">
-          <span style="padding:0 12px;color:#94a3b8;font-size:15px">🔍</span>
-          <input id="search-input-center" placeholder="Enter Initiative ID (e.g. 4648229)…" onkeydown="if(event.key==='Enter')doSearchCenter()" style="flex:1;font-size:12px;background:transparent;border:none;outline:none;color:#334155;padding:0 4px"/>
-          <button onclick="doSearchCenter()" style="padding:0 20px;height:42px;font-size:12px;font-weight:700;color:#fff;background:#123015;border:none;cursor:pointer;white-space:nowrap">Search</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-          <button onclick="clearSearch()" style="font-size:11px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;cursor:pointer;color:#64748b">✕ Clear</button>
-          <button onclick="alert('Refreshes search result from ADO')" style="font-size:11px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;cursor:pointer;color:#64748b">↺ Refresh Result</button>
-        </div>
-      </div>
-      <!-- Search results appear below -->
-      <div id="search-results-area">
-        <div class="empty" style="border:2px dashed #f1f5f9;padding:32px;background:#fff;border-radius:12px">
-          <div class="empty-icon">🔍</div>
-          <div class="empty-title">Enter an Initiative ID above and press Search</div>
-          <div style="font-size:11px;color:#cbd5e1;margin-top:4px">Loads all features, user stories and area path breakdown from ADO</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
+</div>
 </div>
 </div>
 
@@ -910,6 +640,7 @@ async function refreshAll(){
   }
   if(btn){btn.textContent='\u21BA Refresh All';btn.disabled=false;}
   rebuildCatCounts();updateStatsBar(currentCat);
+  savePins();
   var toast=document.createElement('div');
   toast.style.cssText='position:fixed;bottom:20px;right:20px;background:#123015;color:#fff;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:300';
   toast.textContent='Refreshed from ADO';document.body.appendChild(toast);setTimeout(function(){toast.remove();},2500);
@@ -1027,6 +758,7 @@ function removeCard(el){
   el.remove();
   rebuildCatCounts();
   updateStatsBar(currentCat);
+  savePins();
 }
 function quickPin(){
   var id=prompt('Enter Initiative ID to pin (e.g. 4648229):');
@@ -1177,7 +909,7 @@ function doPin(id,title){
         '</div>'+
         '<div class="init-header-right" onclick="event.stopPropagation()">'+
           '<div class="init-chips">'+chips+'</div>'+
-          '<button class="ibtn del" onclick="removeCard(this.closest(\'.init-card\'))">&#10005;</button>'+
+          '<button class="ibtn del" onclick="removeCard(this.parentNode.parentNode)">&#10005;</button>'+
         '</div>'+
         '<span class="caret">&#9660;</span>'+
       '</div>';
@@ -1214,6 +946,7 @@ function doPin(id,title){
   toast.style.cssText='position:fixed;bottom:20px;right:20px;background:#123015;color:#fff;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.2)';
   toast.textContent='Pinned under '+CONNS[conn]+' \u2192 '+catLabels[cat];
   document.body.appendChild(toast);setTimeout(function(){toast.remove()},2500);
+  savePins();
 }
 
 function openDrawer(s){
@@ -1236,14 +969,101 @@ function showCardsForConnectorAndCat(conn, cat){
   });
 }
 
-function initDashboard(){
-  // Ensure all hardcoded cards have connector tag
+function savePins(){
+  var pins=[];
   document.querySelectorAll('.init-card').forEach(function(card){
-    if(!card.dataset.connector) card.dataset.connector='tr-tax';
+    if(!card.dataset.connector||card.id==='live-search') return;
+    var idEl=card.querySelector('.init-id');
+    var titleEl=card.querySelector('.init-title');
+    var assignedEl=card.querySelector('.meta');
+    var dateEl=card.querySelector('.meta-date');
+    var pctEl=card.querySelector('.pct');
+    pins.push({
+      id:idEl?idEl.textContent.replace('#','').trim():'',
+      conn:card.dataset.connector,
+      cat:card.dataset.category||'',
+      title:titleEl?titleEl.textContent.trim():'',
+      stories:parseInt(card.dataset.stories||0),
+      closed:parseInt(card.dataset.closed||0),
+      active:parseInt(card.dataset.active||0),
+      newCount:parseInt(card.dataset.newcount||0),
+      ready:parseInt(card.dataset.ready||0),
+      pct:pctEl?parseInt(pctEl.textContent):0
+    });
   });
+  try{localStorage.setItem('adoDashPins',JSON.stringify(pins));}catch(e){}
+}
+
+async function loadPinsFromStorage(){
+  var saved=[];
+  try{var s=localStorage.getItem('adoDashPins');if(s)saved=JSON.parse(s);}catch(e){return;}
+  if(!saved.length) return;
+  var contentEl=document.getElementById('content');
+  var sra=document.getElementById('search-result-area');
+  for(var i=0;i<saved.length;i++){
+    var p=saved[i];
+    if(!p.id||!p.conn) continue;
+    // Show loading placeholder immediately
+    var placeholder=document.createElement('div');
+    placeholder.className='init-card';
+    placeholder.id='live-'+p.id;
+    placeholder.dataset.connector=p.conn;
+    placeholder.dataset.category=p.cat||'';
+    placeholder.dataset.stories=p.stories||0;
+    placeholder.dataset.closed=p.closed||0;
+    placeholder.dataset.active=p.active||0;
+    placeholder.dataset.newcount=p.newCount||0;
+    placeholder.dataset.ready=p.ready||0;
+    var connColors={'tr-tax':'#123015','tr-default':'#1e40af'};
+    placeholder.style.borderLeftColor=connColors[p.conn]||'#123015';
+    placeholder.style.display=(p.conn===currentConnector)?'block':'none';
+    var catLabels={'sureprep':'SurePrep API','cch':'TSI-CCH','ultratax':'TSI-UltraTax','gosystem':'TSI-GoSystem','lacerte':'TSI-Lacerte'};
+    var dynTags=p.cat?'<span class="tag tag-dyn" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">'+CONNS[p.conn]+'</span><span class="tag tag-dyn" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">'+(catLabels[p.cat]||p.cat)+'</span>':'';
+    placeholder.innerHTML='<div class="init-header" onclick="toggleInitEl(this)">'+
+      '<div class="init-header-left">'+
+        '<div class="init-tags"><span class="tag tag-pin">&#128204; Pinned</span><span class="init-id">#'+p.id+'</span><span class="tag tag-active">Active</span><span class="tag tag-type">Initiative</span>'+dynTags+'</div>'+
+        '<div class="init-title">'+(p.title||'Initiative #'+p.id)+'</div>'+
+        '<div class="init-subrow">'+
+          '<div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:'+(p.pct||0)+'%;background:#123015"></div></div><span class="pct">'+(p.pct||0)+'%</span></div>'+
+          '<span style="font-size:10px;color:#94a3b8;font-style:italic">&#8635; Loading from ADO…</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="init-header-right" onclick="event.stopPropagation()">'+
+        '<div class="init-chips">'+
+          '<div class="chip"><span class="chip-v" style="color:#2563eb">'+(p.stories||'—')+'</span><span class="chip-l">Stories</span></div>'+
+          '<div class="chip"><span class="chip-v" style="color:#16a34a">'+(p.closed||'—')+'</span><span class="chip-l">Closed</span></div>'+
+        '</div>'+
+        '<button class="ibtn del" onclick="removeCard(this.parentNode.parentNode)">&#10005;</button>'+
+      '</div>'+
+      '<span class="caret">&#9660;</span>'+
+    '</div>';
+    if(sra&&sra.nextSibling) contentEl.insertBefore(placeholder,sra.nextSibling);
+    else contentEl.appendChild(placeholder);
+    // Async refresh from ADO
+    (async function(pin, ph){
+      try{
+        var data=await fetchInitiative(pin.conn,pin.id);
+        var newCard=renderLiveCard(data,pin.conn,pin.cat,'live-'+pin.id,'pinned');
+        if(ph.parentNode) ph.parentNode.replaceChild(newCard,ph);
+        rebuildCatCounts();
+        updateStatsBar(currentCat);
+      }catch(e){
+        // Keep placeholder on error, remove spinner
+        var subrow=ph.querySelector('.init-subrow');
+        if(subrow){var sp=subrow.querySelector('span:last-child');if(sp)sp.textContent='(refresh to reload)';}
+      }
+    })(p, placeholder);
+  }
+  rebuildCatCounts();
+  updateStatsBar(currentCat);
+}
+
+function initDashboard(){
   showCardsForConnectorAndCat(currentConnector, currentCat);
   rebuildCatCounts();
   updateStatsBar(currentCat);
+  // Load persisted pins and refresh from ADO
+  loadPinsFromStorage();
 }
 
 // Run on DOMContentLoaded AND as fallback after script parses
@@ -1255,3 +1075,4 @@ if(document.readyState==='loading'){
 </script>
 </body>
 </html>
+
