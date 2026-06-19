@@ -585,12 +585,10 @@ function switchConn(id,el){
   currentConnector=id;
   var sra=document.getElementById('search-result-area'); if(sra)sra.innerHTML='';
   document.getElementById('search-input').value='';
-  document.querySelectorAll('.init-card').forEach(function(card){
-    card.style.display=(card.dataset.connector===id)?'block':'none';
-  });
   currentCat='all';
   document.querySelectorAll('.cat-tab').forEach(function(t){t.className='cat-tab'});
   var at=document.getElementById('ctab-all'); if(at)at.className='cat-tab active';
+  showCardsForConnectorAndCat(id,'all');
   rebuildCatCounts();
   updateStatsBar('all');
   document.getElementById('topbar-title').textContent='\ud83d\udccc '+CONNS[id];
@@ -600,10 +598,7 @@ function switchCat(cat,el){
   currentCat=cat;
   document.querySelectorAll('.cat-tab').forEach(function(t){t.className='cat-tab'});
   el.className='cat-tab active';
-  document.querySelectorAll('.init-card').forEach(function(card){
-    if(card.dataset.connector!==currentConnector){card.style.display='none';return;}
-    card.style.display=(cat==='all'||card.dataset.category===cat)?'block':'none';
-  });
+  showCardsForConnectorAndCat(currentConnector, cat);
   updateStatsBar(cat);
   var emptyEl=document.getElementById('cat-empty');
   if(!emptyEl){emptyEl=document.createElement('div');emptyEl.id='cat-empty';emptyEl.className='empty';emptyEl.style.cssText='border:2px dashed #f1f5f9;margin-top:8px';document.getElementById('content').appendChild(emptyEl);}
@@ -885,15 +880,22 @@ function doPin(id,title){
   var sinput=document.getElementById('search-input');
   if(sinput)sinput.value='';
 
-  // Switch to connector+category
-  if(conn!==currentConnector){
-    var sbEl=conn==='tr-tax'?document.getElementById('sb-tr-tax'):document.getElementById('sb-tr-default');
-    if(sbEl)switchConn(conn,sbEl);
-  } else {
-    var catEl=document.getElementById('ctab-'+cat);
-    if(catEl)switchCat(cat,catEl);
-    else{rebuildCatCounts();updateStatsBar(currentCat);}
-  }
+  // Switch to connector+category where item was pinned
+  currentConnector=conn;
+  currentCat=cat;
+  document.querySelectorAll('.sb-item[id^="sb-tr"]').forEach(function(e){e.className='sb-item'});
+  var sbEl=conn==='tr-tax'?document.getElementById('sb-tr-tax'):document.getElementById('sb-tr-default');
+  if(sbEl)sbEl.className='sb-item active';
+  document.querySelectorAll('.cat-tab').forEach(function(t){t.className='cat-tab'});
+  var catEl=document.getElementById('ctab-'+cat);
+  if(catEl)catEl.className='cat-tab active';
+  var titleEl=document.getElementById('topbar-title');
+  if(titleEl)titleEl.textContent='📌 '+CONNS[conn];
+  showCardsForConnectorAndCat(conn,cat);
+  rebuildCatCounts();
+  updateStatsBar(cat);
+  var lbl=document.getElementById('stat-filter-lbl');
+  if(lbl)lbl.textContent=CATS[cat];
 
   var toast=document.createElement('div');
   toast.style.cssText='position:fixed;bottom:20px;right:20px;background:#123015;color:#fff;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.2)';
@@ -912,16 +914,26 @@ function openDrawer(s){
 }
 function closeDrawer(){document.getElementById('drawer-overlay').className='drawer-overlay'}
 
-document.addEventListener('DOMContentLoaded',function(){
-  // Ensure all pre-existing cards have connector set
+// Run init immediately (not just on DOMContentLoaded) to avoid race
+function initDashboard(){
   document.querySelectorAll('.init-card').forEach(function(card){
     if(!card.dataset.connector) card.dataset.connector='tr-tax';
-    // All cards shown initially (tr-tax is default)
-    card.style.display='block';
   });
+  showCardsForConnectorAndCat(currentConnector, currentCat);
   rebuildCatCounts();
-  updateStatsBar('all');
-});
+  updateStatsBar(currentCat);
+}
+
+// Single source of truth for card visibility
+function showCardsForConnectorAndCat(conn, cat){
+  document.querySelectorAll('.init-card').forEach(function(card){
+    var matchConn = card.dataset.connector === conn;
+    var matchCat  = cat==='all' || card.dataset.category === cat;
+    card.style.display = (matchConn && matchCat) ? 'block' : 'none';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initDashboard);
 </script>
 </body>
 </html>
