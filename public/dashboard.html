@@ -461,6 +461,8 @@ function buildStoryTable(storyList){
 
 function showIterStories(evt, stories, apPath, iter, stateFilter){
   evt.stopPropagation();
+  console.log("showIterStories called:", {apPath:apPath, iter:iter, stateFilter:stateFilter, storiesCount:stories?stories.length:0});
+  if(stories&&stories.length>0){console.log("Sample story AP:", stories[0].fields["System.AreaPath"], "iter:", stories[0].fields["System.IterationPath"]);}
   function cls(s){if(['Closed','Resolved'].indexOf(s)>-1)return 'closed';if(s==='Active')return 'active';if(s==='Ready')return 'ready';return 'new';}
   // Filter stories
   // Match by iteration (last 2 parts) + optional state + area path
