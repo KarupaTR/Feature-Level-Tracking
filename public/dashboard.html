@@ -543,20 +543,14 @@ function showIterStories(evt, stories, apPath, iter, stateFilter){
 window._storyStore = window._storyStore || {};
 
 function buildIterTable(allStories, ap, storeKey){
-  // Store stories globally so inline onclick can access them
-  if(storeKey && allStories){
-    window._storyStore[storeKey] = allStories;
-  }
-  var sk = storeKey || 'default';
-
+  if(storeKey && allStories) window._storyStore[storeKey]=allStories;
+  var sk=storeKey||'default';
   function cls(st){if(['Closed','Resolved'].indexOf(st)>-1)return 'closed';if(st==='Active')return 'active';if(st==='Ready')return 'ready';return 'new';}
-
   var apStories=allStories.filter(function(s){
     var sap=s.fields['System.AreaPath']||'';
     return sap===ap.fullPath||sap.split('\\').pop()===ap.name;
   });
   if(!apStories.length) return '<div style="padding:10px;font-size:10px;color:#94a3b8">No stories for this area path.</div>';
-
   var iterMap={};
   apStories.forEach(function(s){
     var iterFull=s.fields['System.IterationPath']||'No Sprint';
@@ -567,29 +561,31 @@ function buildIterTable(allStories, ap, storeKey){
     var c=cls(s.fields['System.State']);
     iterMap[iter][c==='new'?'newCount':c]++;
   });
-
   var iters=Object.values(iterMap).sort(function(a,b){return a.iter.localeCompare(b.iter);});
-  var apFullPath=ap.fullPath.replace(/'/g,"\\'");
   var apPct=ap.total?Math.round(ap.closed/ap.total*100):0;
   var verified=(ap.closed+ap.active+ap.newCount+ap.ready)===ap.total;
 
+  // Store each (sk, apName, iter, filter) combo with a simple numeric key
+  if(!window._iterClickStore) window._iterClickStore=[];
+
+  function makeCell(val,color,filter,iterVal){
+    if(!val) return '<td style="text-align:center;padding:7px 12px"><span style="color:#94a3b8">0</span></td>';
+    var idx=window._iterClickStore.length;
+    window._iterClickStore.push({sk:sk,apName:ap.name,iter:iterVal,filter:filter});
+    return '<td style="text-align:center;padding:7px 12px"><span style="color:'+color+';cursor:pointer;font-weight:700" onclick="clickIterCell('+idx+')">'+val+'</span></td>';
+  }
+
   var rowsHtml=iters.map(function(it){
     var pct=it.total?Math.round(it.closed/it.total*100):0;
-    var iterEsc=it.iter.replace(/'/g,"\\'");
-
-    function makeCell(val,color,filter){
-      var style='color:'+(val?color:'#94a3b8')+(val?';cursor:pointer;font-weight:700':'');
-      var onclick=val?(' onclick="showIterStoriesFromStore(event,\''+sk+'\',\''+apFullPath+'\',\''+iterEsc+'\',\''+filter+'\')"'):'';
-      return '<td style="text-align:center;padding:7px 12px"><span style="'+style+'"'+onclick+'>'+val+'</span></td>';
-    }
-
+    var idxTotal=window._iterClickStore.length;
+    window._iterClickStore.push({sk:sk,apName:ap.name,iter:it.iter,filter:null});
     return '<tr style="border-bottom:1px solid #f8fafc">'+
       '<td style="text-align:left;font-weight:600;color:#334155;font-size:10px;padding:7px 12px">'+it.iter+'</td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="cursor:pointer;color:#334155" onclick="showIterStoriesFromStore(event,\''+sk+'\',\''+apFullPath+'\',\''+iterEsc+'\',null)">'+it.total+'</span></td>'+
-      makeCell(it.closed,'#16a34a','closed')+
-      makeCell(it.active,'#2563eb','active')+
-      makeCell(it.newCount,'#475569','new')+
-      makeCell(it.ready,'#7c3aed','ready')+
+      '<td style="text-align:center;padding:7px 12px"><span style="cursor:pointer;color:#334155" onclick="clickIterCell('+idxTotal+')">'+it.total+'</span></td>'+
+      makeCell(it.closed,'#16a34a','closed',it.iter)+
+      makeCell(it.active,'#2563eb','active',it.iter)+
+      makeCell(it.newCount,'#475569','new',it.iter)+
+      makeCell(it.ready,'#7c3aed','ready',it.iter)+
       '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+pct+'%"></div></div></td>'+
     '</tr>';
   }).join('');
@@ -603,11 +599,9 @@ function buildIterTable(allStories, ap, storeKey){
     '<td style="text-align:center;padding:7px 12px;color:#7c3aed">'+ap.ready+'</td>'+
     '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+apPct+'%"></div></div></td>'+
   '</tr>';
-
   var verifRow='<tr style="background:#f8fafc"><td colspan="7" style="padding:6px 12px;font-size:9px;color:#64748b">'+
     '<span style="font-weight:700">Verification:</span> '+ap.total+' = '+ap.closed+' closed + '+ap.active+' active + '+ap.newCount+' new + '+ap.ready+' ready'+
-    ' &nbsp;<span style="color:'+(verified?'#16a34a':'#ef4444')+';font-weight:700">'+(verified?'✓ Verified':'⚠ Mismatch')+'</span>'+
-  '</td></tr>';
+    ' &nbsp;<span style="color:'+(verified?'#16a34a':'#ef4444')+';font-weight:700">'+(verified?'&#10003; Verified':'&#9888; Mismatch')+'</span></td></tr>';
 
   return '<div style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:10px">'+
     '<table style="width:100%;border-collapse:collapse">'+
@@ -621,10 +615,90 @@ function buildIterTable(allStories, ap, storeKey){
       '<th style="padding:6px 12px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Progress</th>'+
     '</tr></thead>'+
     '<tbody>'+rowsHtml+totRow+verifRow+'</tbody>'+
-    '</table></div>';
+  '</table></div>';
 }
 
-// Called from inline onclick - looks up stories from global store
+// Called from onclick="clickIterCell(idx)" - zero backslash issues
+function clickIterCell(idx){
+  var entry=window._iterClickStore&&window._iterClickStore[idx];
+  if(!entry){console.warn('No iter click store entry at',idx);return;}
+  var stories=window._storyStore[entry.sk];
+  if(!stories){console.warn('No stories in store for key',entry.sk);return;}
+  // Filter by area path leaf name + iteration + optional state
+  function cls(st){if(['Closed','Resolved'].indexOf(st)>-1)return 'closed';if(st==='Active')return 'active';if(st==='Ready')return 'ready';return 'new';}
+  var filtered=stories.filter(function(s){
+    var sap=(s.fields['System.AreaPath']||'').split('\\').pop();
+    var matchAP=!entry.apName||sap===entry.apName;
+    var siterFull=s.fields['System.IterationPath']||'';
+    var siterParts=siterFull.split('\\');
+    var siter2=siterParts.slice(-2).join('\\');
+    var siter1=siterParts[siterParts.length-1];
+    var entryParts=entry.iter.split('\\');
+    var matchIter=siter2===entry.iter||siter1===entryParts[entryParts.length-1];
+    var matchState=!entry.filter||cls(s.fields['System.State'])===entry.filter;
+    return matchAP&&matchIter&&matchState;
+  });
+  // Fallback without AP filter
+  if(!filtered.length){
+    filtered=stories.filter(function(s){
+      var siterFull=s.fields['System.IterationPath']||'';
+      var siterParts=siterFull.split('\\');
+      var siter2=siterParts.slice(-2).join('\\');
+      var siter1=siterParts[siterParts.length-1];
+      var entryParts=entry.iter.split('\\');
+      var matchIter=siter2===entry.iter||siter1===entryParts[entryParts.length-1];
+      var matchState=!entry.filter||cls(s.fields['System.State'])===entry.filter;
+      return matchIter&&matchState;
+    });
+  }
+  if(!filtered.length){alert('No stories found. Check console for debug info.\niter='+entry.iter+' apName='+entry.apName);return;}
+  showIterStoriesModal(filtered, entry.iter, entry.filter);
+}
+
+function showIterStoriesModal(filtered, title, stateFilter){
+  var label=title+(stateFilter?' \u2014 '+stateFilter.charAt(0).toUpperCase()+stateFilter.slice(1):'');
+  var ex=document.getElementById('story-modal');if(ex)ex.remove();
+  var stateColors={Active:'#eff6ff',Ready:'#f5f3ff',New:'#f8fafc',Closed:'#f0fdf4',Resolved:'#f0fdf4'};
+  var rows=filtered.map(function(s){
+    var sf=s.fields;
+    var st=sf['System.State']||'';
+    var stBg=stateColors[st]||'#f8fafc';
+    var assigned=typeof sf['System.AssignedTo']==='object'?(sf['System.AssignedTo'].displayName||'\u2014'):(sf['System.AssignedTo']||'\u2014');
+    var rd=sf['Custom.PI_ReleaseDate'];
+    var rdStr=rd?new Date(rd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'\u2014';
+    var iter=(sf['System.IterationPath']||'').split('\\').pop();
+    return '<tr style="border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="window.open(\'https://dev.azure.com/tr-tax/TaxProf/_workitems/edit/'+s.id+'\',\'_blank\')">'+
+      '<td style="padding:8px 12px;font-size:10px;font-family:monospace;color:#3b82f6;white-space:nowrap">#'+s.id+'</td>'+
+      '<td style="padding:8px 12px;font-size:11px;color:#334155;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+sf['System.Title']+'</td>'+
+      '<td style="padding:8px 12px"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+stBg+';color:#334155">'+st+'</span></td>'+
+      '<td style="padding:8px 12px;font-size:10px;color:#64748b;white-space:nowrap">'+iter+'</td>'+
+      '<td style="padding:8px 12px;font-size:10px;color:#64748b;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">'+assigned+'</td>'+
+      '<td style="padding:8px 12px;font-size:10px;color:#64748b;white-space:nowrap">'+rdStr+'</td>'+
+    '</tr>';
+  }).join('');
+  var modal=document.createElement('div');modal.id='story-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML='<div style="background:#fff;border-radius:14px;width:960px;max-width:95vw;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.15)">'+
+    '<div style="padding:14px 20px;background:#123015;display:flex;align-items:center;gap:8px;flex-shrink:0">'+
+      '<span style="font-size:13px;font-weight:700;color:#fff;flex:1">'+label+' <span style="font-size:11px;opacity:.7">('+filtered.length+' stories)</span></span>'+
+      '<button onclick="document.getElementById(\'story-modal\').remove()" style="background:none;border:none;color:#4ade80;font-size:18px;cursor:pointer;line-height:1">&times;</button>'+
+    '</div>'+
+    '<div style="overflow-y:auto;flex:1">'+
+    '<table style="width:100%;border-collapse:collapse">'+
+    '<thead><tr style="background:#f8fafc;position:sticky;top:0">'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0">ID</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0">Title</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0">State</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0">Sprint</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0">Assigned To</th>'+
+      '<th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0">Release Date</th>'+
+    '</tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>'+
+  '</div>';
+  modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  document.body.appendChild(modal);
+}
+
 function showIterStoriesFromStore(evt, storeKey, apPath, iter, stateFilter){
   var stories = window._storyStore[storeKey];
   if(!stories){console.warn('No stories in store for key:', storeKey); return;}
