@@ -225,14 +225,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   <div class="sb-item" id="sb-tr-default" onclick="switchConn('tr-default',this)">
     <span class="sb-icon">🔵</span><span class="sb-label">TR-Tax-Default</span><span class="sb-badge">0</span>
   </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section">Views</div>
-  <div class="sb-item active" id="sb-pinned" onclick="switchView('pinned',this)">
-    <span class="sb-icon">📌</span><span class="sb-label">Pinned</span><span class="sb-badge" id="sb-pin-cnt">2</span>
-  </div>
-  <div class="sb-item" id="sb-search-nav" onclick="switchView('search',this)">
-    <span class="sb-icon">🔍</span><span class="sb-label">Search</span><span class="sb-badge" id="sb-search-cnt">0</span>
-  </div>
+
 
 </div>
 
@@ -242,12 +235,14 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-title" id="topbar-title">📌 Pinned Initiatives</div>
-    <div class="tb-search" id="search-bar" style="display:none">
+    <div style="flex:1"></div>
+    <!-- Search bar always visible in topbar -->
+    <div class="tb-search" id="search-bar" style="display:flex">
       <span class="tb-search-icon">🔍</span>
-      <input placeholder="Enter Initiative ID…" id="search-input" onkeydown="if(event.key==='Enter')doSearch()"/>
-      <button class="tb-search-go" onclick="doSearch()">Search</button>
+      <input placeholder="Search Initiative ID…" id="search-input" onkeydown="if(event.key==='Enter')doTopSearch()"/>
+      <button class="tb-search-go" onclick="doTopSearch()">Search</button>
     </div>
-    <button class="tb-btn" id="topbar-refresh" onclick="alert('Refreshes all pinned initiatives from ADO')">↺ Refresh All</button>
+    <button class="tb-btn" id="topbar-refresh" onclick="alert('Refreshes all pinned initiatives')">↺ Refresh All</button>
     <button class="tb-btn primary" id="pin-add-btn" onclick="quickPin()">+ Pin Initiative</button>
   </div>
 
@@ -279,8 +274,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   <!-- CONTENT -->
   <div class="content" id="content">
 
-    <!-- PINNED VIEW -->
-    <div id="view-pinned">
+    <!-- SEARCH RESULT (session-only, appears above pinned) -->
+    <div id="search-result-area"></div>
+
+    <!-- PINNED INITIATIVES -->
 
       <!-- INITIATIVE 1 -->
       <div class="init-card" id="card-1" data-category="sureprep" data-stories="264" data-closed="140" data-active="0" data-newcount="30" data-ready="94">
@@ -522,34 +519,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
     </div>
 
-    <!-- SEARCH VIEW -->
-    <div id="view-search" style="display:none">
-      <!-- Centered search bar -->
-      <div style="display:flex;flex-direction:column;align-items:center;padding:28px 16px 20px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:18px">🔍</span>
-          <span style="font-size:15px;font-weight:700;color:#0f172a">Search Initiatives</span>
-        </div>
-        <p style="font-size:11px;color:#94a3b8;margin-bottom:16px">Session only — results are cleared on refresh. Pin to save permanently.</p>
-        <div style="display:flex;align-items:center;width:100%;max-width:480px;height:42px;border:1.5px solid #e2e8f0;border-radius:11px;background:#fff;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:border .15s" onfocusin="this.style.borderColor='#3b82f6'" onfocusout="this.style.borderColor='#e2e8f0'">
-          <span style="padding:0 12px;color:#94a3b8;font-size:15px">🔍</span>
-          <input id="search-input-center" placeholder="Enter Initiative ID (e.g. 4648229)…" onkeydown="if(event.key==='Enter')doSearchCenter()" style="flex:1;font-size:12px;background:transparent;border:none;outline:none;color:#334155;padding:0 4px"/>
-          <button onclick="doSearchCenter()" style="padding:0 20px;height:42px;font-size:12px;font-weight:700;color:#fff;background:#123015;border:none;cursor:pointer;white-space:nowrap">Search</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-          <button onclick="clearSearch()" style="font-size:11px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;cursor:pointer;color:#64748b">✕ Clear</button>
-          <button onclick="alert('Refreshes search result from ADO')" style="font-size:11px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;cursor:pointer;color:#64748b">↺ Refresh Result</button>
-        </div>
-      </div>
-      <!-- Search results appear below -->
-      <div id="search-results-area">
-        <div class="empty" style="border:2px dashed #f1f5f9;padding:32px;background:#fff;border-radius:12px">
-          <div class="empty-icon">🔍</div>
-          <div class="empty-title">Enter an Initiative ID above and press Search</div>
-          <div style="font-size:11px;color:#cbd5e1;margin-top:4px">Loads all features, user stories and area path breakdown from ADO</div>
-        </div>
-      </div>
-    </div>
+
 
   </div>
 </div>
@@ -571,179 +541,111 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 </div>
 
 <script>
-function switchConn(id,el){document.querySelectorAll('.sb-item[id^="sb-tr"]').forEach(function(e){e.className='sb-item'});el.className='sb-item active'}
-function switchView(v,el){
-  document.querySelectorAll('#sb-pinned,#sb-search-nav').forEach(function(e){e.className='sb-item'});
-  el.className='sb-item active';
-  document.getElementById('view-pinned').style.display = v==='pinned' ? 'block' : 'none';
-  document.getElementById('view-search').style.display  = v==='search' ? 'block' : 'none';
-  document.getElementById('topbar-title').textContent   = v==='pinned' ? '📌 Pinned Initiatives' : '🔍 Search';
-  // Topbar controls
-  var sbEl = document.getElementById('search-bar');
-  if(sbEl) sbEl.style.display = 'none'; // never show topbar search
-  var pinBtn = document.getElementById('pin-add-btn');
-  if(pinBtn) pinBtn.style.display = v==='pinned' ? 'flex' : 'none';
-  var rfBtn = document.getElementById('topbar-refresh');
-  if(rfBtn) rfBtn.style.display = v==='pinned' ? 'flex' : 'none';
-  // Stats bar + category tabs — only in pinned
-  var statsEl = document.getElementById('stats-bar');
-  if(statsEl) statsEl.style.display = v==='pinned' ? 'flex' : 'none';
-  var catEl = document.getElementById('cat-tab-bar');
-  if(catEl) catEl.style.display = v==='pinned' ? 'flex' : 'none';
-  // Focus search input
-  if(v==='search') setTimeout(function(){
-    var inp = document.getElementById('search-input-center');
-    if(inp) inp.focus();
-  }, 50);
-}
+var currentConnector = 'tr-tax';
 
-function doSearchCenter(){
-  var val=document.getElementById('search-input-center').value.trim();
-  if(!val)return;
-  window.currentSearchId=val;
-  window.currentSearchTitle='SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations';
+function doTopSearch(){
+  var val = document.getElementById('search-input').value.trim();
+  if(!val) return;
+  window.currentSearchId    = val;
+  window.currentSearchTitle = 'SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations';
 
-  var area=document.getElementById('search-results-area');
-  area.innerHTML='';
+  var area = document.getElementById('search-result-area');
+  area.innerHTML = '';
 
-  // Build card using DOM
-  var card=document.createElement('div');
-  card.className='init-card search-card';
-  card.style.borderLeftColor='#f59e0b';
+  // Session-only banner
+  var banner = document.createElement('div');
+  banner.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;margin-bottom:10px;font-size:11px;color:#92400e';
+  area.appendChild(banner);
 
-  var hdr=document.createElement('div');
-  hdr.className='init-header';
-  hdr.onclick=function(){toggleInit('sr')};
+  var card = document.createElement('div');
+  card.className = 'init-card search-card';
+  card.style.borderLeftColor = '#f59e0b';
+  card.dataset.connector = currentConnector;
 
-  var left=document.createElement('div');
-  left.className='init-header-left';
-  left.innerHTML=
+  var hdr = document.createElement('div');
+  hdr.className = 'init-header';
+  hdr.onclick = function(){ toggleInit('sr'); };
+
+  var left = document.createElement('div');
+  left.className = 'init-header-left';
+  left.innerHTML =
     '<div class="init-tags">'+
       '<span class="tag tag-search">&#128269; Search result</span>'+
       '<span class="init-id">#'+val+'</span>'+
       '<span class="tag tag-active">Active</span>'+
       '<span class="tag tag-type">Initiative</span>'+
     '</div>'+
-    '<div class="init-title">SurePrep APIs \u2014 Expansion to Support the 1041 Binder and Workflow Automations</div>'+
+    '<div class="init-title">SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations</div>'+
     '<div class="init-subrow">'+
       '<div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:53%;background:#f59e0b"></div></div><span class="pct">53%</span></div>'+
       '<span class="meta">&#128100; Thatikonda, Swapna V.</span>'+
       '<span class="meta-date">&#128197; Release Date: Jul 26, 2026</span>'+
     '</div>';
 
-  var right=document.createElement('div');
-  right.className='init-header-right';
-  right.onclick=function(e){e.stopPropagation()};
-  right.innerHTML=
+  var right = document.createElement('div');
+  right.className = 'init-header-right';
+  right.onclick = function(e){ e.stopPropagation(); };
+  right.innerHTML =
     '<div class="init-chips">'+
       '<div class="chip"><span class="chip-v">21</span><span class="chip-l">Features</span></div>'+
       '<div class="chip"><span class="chip-v" style="color:#2563eb">264</span><span class="chip-l">Stories</span></div>'+
       '<div class="chip"><span class="chip-v" style="color:#16a34a">140</span><span class="chip-l">Closed</span></div>'+
       '<div class="chip"><span class="chip-v" style="color:#2563eb">0</span><span class="chip-l">Active</span></div>'+
+      '<div class="chip"><span class="chip-v" style="color:#64748b">30</span><span class="chip-l">New</span></div>'+
       '<div class="chip"><span class="chip-v" style="color:#7c3aed">94</span><span class="chip-l">Ready</span></div>'+
     '</div>';
 
-  var pinBtn=document.createElement('button');
-  pinBtn.className='ibtn pin-it';
-  pinBtn.innerHTML='&#128204; Pin';
-  pinBtn.onclick=function(e){e.stopPropagation();pinWithCategory(window.currentSearchId,window.currentSearchTitle)};
+  var pinBtn = document.createElement('button');
+  pinBtn.className = 'ibtn pin-it';
+  pinBtn.innerHTML = '&#128204; Pin';
+  pinBtn.onclick = function(e){ e.stopPropagation(); pinWithCategory(window.currentSearchId, window.currentSearchTitle); };
   right.appendChild(pinBtn);
 
-  var delBtn=document.createElement('button');
-  delBtn.className='ibtn del';
-  delBtn.innerHTML='&#10005;';
-  delBtn.onclick=function(e){e.stopPropagation();card.remove()};
+  var delBtn = document.createElement('button');
+  delBtn.className = 'ibtn del';
+  delBtn.innerHTML = '&#10005;';
+  delBtn.onclick = function(e){ e.stopPropagation(); area.innerHTML=''; document.getElementById('search-input').value=''; };
   right.appendChild(delBtn);
 
-  var caret=document.createElement('span');
-  caret.className='caret';
-  caret.id='caret-sr';
-  caret.textContent='▼';
+  var caret = document.createElement('span');
+  caret.className = 'caret';
+  caret.id = 'caret-sr';
+  caret.textContent = '▼';
 
   hdr.appendChild(left);
   hdr.appendChild(right);
   hdr.appendChild(caret);
 
-  var body=document.createElement('div');
-  body.className='init-body';
-  body.id='body-sr';
-  body.innerHTML='<div class="inner-tab-bar"><div class="inner-tab active">&#8801; Features (21)</div><div class="inner-tab">&#128506; Area Paths (5)</div></div><div style="padding:12px 16px;background:#f8fafc;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9">Features and stories expand here just like in Pinned view — click any feature to expand stories.</div>';
+  var body = document.createElement('div');
+  body.className = 'init-body';
+  body.id = 'body-sr';
+  body.innerHTML =
+    '<div class="inner-tab-bar"><div class="inner-tab active">&#8801; Features (21)</div><div class="inner-tab">&#128506; Area Paths (5)</div></div>'+
+    '<div style="padding:12px 16px;background:#f8fafc;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9">In the live dashboard, all features and user stories load here from ADO.</div>';
 
   card.appendChild(hdr);
   card.appendChild(body);
   area.appendChild(card);
-  document.getElementById('sb-search-cnt').textContent='1';
 }
 
-function clearSearch(){
-  document.getElementById('search-input-center').value='';
-  document.getElementById('search-results-area').innerHTML='<div class="empty" style="border:2px dashed #f1f5f9;padding:32px;background:#fff;border-radius:12px"><div class="empty-icon">🔍</div><div class="empty-title">Enter an Initiative ID above and press Search</div><div style="font-size:11px;color:#cbd5e1;margin-top:4px">Loads all features, user stories and area path breakdown from ADO</div></div>';
-  document.getElementById('sb-search-cnt').textContent='0';
+function switchConn(id,el){
+  document.querySelectorAll('.sb-item[id^="sb-tr"]').forEach(function(e){e.className='sb-item'});
+  el.className='sb-item active';
+  currentConnector = id;
+  // Clear search results when switching connector
+  var sra = document.getElementById('search-result-area');
+  if(sra) sra.innerHTML='';
+  document.getElementById('search-input').value='';
+  // Show/hide pinned cards by connector
+  document.querySelectorAll('.init-card[data-connector]').forEach(function(card){
+    card.style.display = (card.dataset.connector===id || !card.dataset.connector) ? 'block' : 'none';
+  });
+  updateStatsBar(currentCat);
+  // Update topbar title
+  var labels={'tr-tax':'TR-Tax · TaxProf','tr-default':'TR-Tax-Default · SurePrep'};
+  document.getElementById('topbar-title').textContent='📌 '+labels[id];
 }
-function toggleInit(id){
-  var b=document.getElementById('body-'+id),c=document.getElementById('caret-'+id);
-  var open=b.style.display!=='none';
-  b.style.display=open?'none':'block';
-  c.style.transform=open?'':'rotate(180deg)';
-}
-function toggleFeat(id){
-  var z=document.getElementById('sz-'+id),c=document.getElementById('caret-'+id);
-  var open=z.style.display!=='none';
-  z.style.display=open?'none':'block';
-  if(c)c.style.transform=open?'':'rotate(180deg)';
-}
-function toggleAP(id){
-  var z=document.getElementById('sz-'+id),c=document.getElementById('caret-'+id);
-  var open=z.style.display!=='none';
-  z.style.display=open?'none':'block';
-  if(c)c.style.transform=open?'':'rotate(180deg)';
-}
-function switchTab(initId,tabId,el){
-  el.parentNode.querySelectorAll('.inner-tab').forEach(function(t){t.className='inner-tab'});
-  el.className='inner-tab active';
-  document.getElementById('body-'+initId).querySelectorAll('.tab-panel').forEach(function(p){p.className='tab-panel'});
-  document.getElementById('tab-'+initId+'-'+tabId).className='tab-panel active';
-}
-function removeCard(id){var el=document.getElementById(id);if(el)el.parentNode.removeChild(el)}
-function quickPin(){
-  var id=prompt('Enter Initiative ID to pin:');
-  if(!id)return;
-  id=id.replace('#','').trim();
-  pinWithCategory(id,'Initiative #'+id);
-}
-function doSearch(){
-  var val=document.getElementById('search-input').value.trim();
-  if(!val)return;
-  var area=document.getElementById('search-results-area');
-  area.innerHTML='<div style="padding:16px"><div class="init-card search-card" style="border-left-color:#f59e0b">'+
-    '<div class="init-header" onclick="toggleInit(\'sr\')">'+
-      '<div class="init-header-left">'+
-        '<div class="init-tags"><span class="tag tag-search">🔍 Search result</span><span class="init-id">#'+val+'</span><span class="tag tag-active">Active</span><span class="tag tag-type">Initiative</span></div>'+
-        '<div class="init-title">SurePrep APIs — Expansion to Support the 1041 Binder and Workflow Automations</div>'+
-        '<div class="init-subrow"><div class="prog-row"><div class="pbar" style="width:70px"><div class="pfill" style="width:53%;background:#f59e0b"></div></div><span class="pct">53%</span></div><span class="meta">👤 Thatikonda, Swapna V.</span><span class="meta-date">📅 Release Date: Jul 26, 2026</span></div>'+
-      '</div>'+
-      '<div class="init-header-right" onclick="event.stopPropagation()">'+
-        '<div class="init-chips"><div class="chip"><span class="chip-v">21</span><span class="chip-l">Features</span></div><div class="chip"><span class="chip-v" style="color:#2563eb">264</span><span class="chip-l">Stories</span></div><div class="chip"><span class="chip-v" style="color:#16a34a">140</span><span class="chip-l">Closed</span></div></div>'+
-        '<button class="ibtn pin-it" onclick="alert(\'Pinned! Switch to Pinned view.\')">📌 Pin</button>'+
-        '<button class="ibtn del" onclick="this.closest(\'.init-card\').remove()">✕</button>'+
-      '</div>'+
-      '<span class="caret" id="caret-sr">▼</span>'+
-    '</div>'+
-    '<div class="init-body" id="body-sr"><div style="padding:14px 18px;font-size:11px;color:#94a3b8;background:#f8fafc;border-top:1px solid #f1f5f9">Features and stories load here on expand in the live dashboard…</div></div>'+
-  '</div></div>';
-  document.getElementById('sb-search-cnt').textContent='1';
-}
-function openDrawer(s){
-  document.getElementById('d-id').textContent='#'+s.id;
-  document.getElementById('d-title').textContent=s.title;
-  var sc={Active:'#1d4ed8',Ready:'#5b21b6',New:'#475569',Closed:'#166534',Removed:'#94a3b8'};
-  var fields=[['Type',s.type],['State','<span style="font-weight:700;color:'+(sc[s.state]||'#64748b')+'">'+s.state+'</span>'],['Area Path',s.area],['Iteration',s.iter],['Assigned To',s.assigned||'—'],['PI Release Date',s.pi||'—']];
-  document.getElementById('d-fields').innerHTML=fields.map(function(f){return'<div style="background:#f8fafc;border-radius:8px;padding:9px 12px;border:1px solid #f1f5f9"><div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:3px">'+f[0]+'</div><div style="font-size:11px;color:#334155;font-weight:500">'+f[1]+'</div></div>'}).join('');
-  document.getElementById('d-link').href='https://dev.azure.com/tr-tax/TaxProf/_workitems/edit/'+s.id;
-  document.getElementById('drawer-overlay').className='drawer-overlay open';
-}
-function closeDrawer(){document.getElementById('drawer-overlay').className='drawer-overlay'}
-document.getElementById('search-input').addEventListener('keydown',function(e){if(e.key==='Enter')doSearch()});
+
 
 var CATS={'all':'All','sureprep':'SurePrep API','cch':'TSI-CCH','ultratax':'TSI-UltraTax','gosystem':'TSI-GoSystem','lacerte':'TSI-Lacerte'};
 var currentCat='all';
