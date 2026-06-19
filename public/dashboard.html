@@ -517,61 +517,142 @@ function showIterStories(evt, stories, apPath, iter, stateFilter){
 }
 
 function buildIterTable(allStories, ap){
+  function cls(st){if(['Closed','Resolved'].indexOf(st)>-1)return 'closed';if(st==='Active')return 'active';if(st==='Ready')return 'ready';return 'new';}
+
   // Filter stories for this area path
   var apStories=allStories.filter(function(s){
     var sap=s.fields['System.AreaPath']||'';
     return sap===ap.fullPath||sap.split('\\').pop()===ap.name;
   });
-  if(!apStories.length) return '<div style="padding:10px;font-size:10px;color:#94a3b8">No stories found for this area path.</div>';
+  if(!apStories.length) return '<div style="padding:10px;font-size:10px;color:#94a3b8">No stories for this area path.</div>';
 
-  // Group by iteration (leaf only)
+  // Group by iteration
   var iterMap={};
-  function cls(st){if(['Closed','Resolved'].indexOf(st)>-1)return 'closed';if(st==='Active')return 'active';if(st==='Ready')return 'ready';return 'new';}
   apStories.forEach(function(s){
-    var iter=(s.fields['System.IterationPath']||'').split('\\').slice(-2).join('\\') || 'No Sprint';
+    var iterFull=s.fields['System.IterationPath']||'No Sprint';
+    var parts=iterFull.split('\\');
+    var iter=parts.length>=2?parts.slice(-2).join('\\'):iterFull;
     if(!iterMap[iter]) iterMap[iter]={iter:iter,total:0,closed:0,active:0,ready:0,newCount:0};
     iterMap[iter].total++;
     var c=cls(s.fields['System.State']);
     iterMap[iter][c==='new'?'newCount':c]++;
   });
+
   var iters=Object.values(iterMap).sort(function(a,b){return a.iter.localeCompare(b.iter);});
 
-  var rows=iters.map(function(it){
+  // Build table using DOM
+  var wrap=document.createElement('div');
+  wrap.style.cssText='background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:10px';
+
+  var table=document.createElement('table');
+  table.style.cssText='width:100%;border-collapse:collapse';
+
+  // Header
+  var thead=document.createElement('thead');
+  var cols=['Iteration','Total','Closed','Active','New','Ready','Progress'];
+  var colColors=['#64748b','#64748b','#16a34a','#2563eb','#475569','#7c3aed','#64748b'];
+  var htr=document.createElement('tr');
+  htr.style.background='#f1f5f9';
+  cols.forEach(function(col,i){
+    var th=document.createElement('th');
+    th.style.cssText='padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+colColors[i]+';'+(i===0?'text-align:left':'text-align:center');
+    th.textContent=col;
+    htr.appendChild(th);
+  });
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  // Body
+  var tbody=document.createElement('tbody');
+
+  iters.forEach(function(it){
     var pct=it.total?Math.round(it.closed/it.total*100):0;
-    return '<tr>'+
-      '<td style="text-align:left;font-weight:600;color:#334155;font-size:10px;padding:7px 12px">'+it.iter+'</td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="cursor:pointer;padding:2px 6px;border-radius:4px;color:#334155" onclick="showIterStories(event,allStories,ap.fullPath,it.iter,null)">'+it.total+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.closed?'#16a34a':'#94a3b8')+';cursor:'+(it.closed?'pointer':'default')+'" '+(it.closed?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'closed\')">':'>"+')+it.closed+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.active?'#2563eb':'#94a3b8')+';cursor:'+(it.active?'pointer':'default')+'" '+(it.active?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'active\')">':'>"+')+it.active+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.newCount?'#475569':'#94a3b8')+';cursor:'+(it.newCount?'pointer':'default')+'" '+(it.newCount?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'new\')">':'>"+')+it.newCount+'</span></td>'+
-      '<td style="text-align:center;padding:7px 12px"><span style="color:'+(it.ready?'#7c3aed':'#94a3b8')+';cursor:'+(it.ready?'pointer':'default')+'" '+(it.ready?'onclick="showIterStories(event,allStories,ap.fullPath,it.iter,\'ready\')">':'>"+')+it.ready+'</span></td>'+
-      '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+pct+'%"></div></div></td>'+
-    '</tr>';
-  }).join('');
+    var tr=document.createElement('tr');
+    tr.style.borderBottom='1px solid #f8fafc';
+
+    // Iteration name
+    var tdIter=document.createElement('td');
+    tdIter.style.cssText='text-align:left;font-weight:600;color:#334155;font-size:10px;padding:7px 12px';
+    tdIter.textContent=it.iter;
+    tr.appendChild(tdIter);
+
+    // Total
+    var tdTotal=document.createElement('td');
+    tdTotal.style.cssText='text-align:center;padding:7px 12px';
+    var spTotal=document.createElement('span');
+    spTotal.style.cssText='cursor:pointer;padding:2px 6px;border-radius:4px;color:#334155';
+    spTotal.textContent=it.total;
+    spTotal.onclick=(function(i,ap){return function(e){e.stopPropagation();showIterStories(e,allStories,ap.fullPath,i,null);};})(it.iter,ap);
+    tdTotal.appendChild(spTotal);
+    tr.appendChild(tdTotal);
+
+    // Closed / Active / New / Ready
+    var stateDefs=[
+      {val:it.closed, color:'#16a34a', filter:'closed'},
+      {val:it.active, color:'#2563eb', filter:'active'},
+      {val:it.newCount,color:'#475569', filter:'new'},
+      {val:it.ready,  color:'#7c3aed', filter:'ready'}
+    ];
+    stateDefs.forEach(function(sd){
+      var td=document.createElement('td');
+      td.style.cssText='text-align:center;padding:7px 12px';
+      var sp=document.createElement('span');
+      sp.textContent=sd.val;
+      sp.style.cssText='color:'+(sd.val?sd.color:'#94a3b8')+(sd.val?';cursor:pointer':'');
+      if(sd.val){
+        sp.onclick=(function(i,ap,f){return function(e){e.stopPropagation();showIterStories(e,allStories,ap.fullPath,i,f);};})(it.iter,ap,sd.filter);
+      }
+      td.appendChild(sp);
+      tr.appendChild(td);
+    });
+
+    // Progress bar
+    var tdProg=document.createElement('td');
+    tdProg.style.cssText='padding:7px 12px';
+    tdProg.innerHTML='<div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+pct+'%"></div></div>';
+    tr.appendChild(tdProg);
+
+    tbody.appendChild(tr);
+  });
 
   // Totals row
-  var rows_end='<tr style="background:#f1f5f9;font-weight:700">'+
-    '<td style="text-align:left;padding:7px 12px;font-size:10px">Total</td>'+
-    '<td style="text-align:center;padding:7px 12px">'+ap.total+'</td>'+
-    '<td style="text-align:center;padding:7px 12px;color:#16a34a">'+ap.closed+'</td>'+
-    '<td style="text-align:center;padding:7px 12px;color:#2563eb">'+ap.active+'</td>'+
-    '<td style="text-align:center;padding:7px 12px;color:#64748b">'+ap.newCount+'</td>'+
-    '<td style="text-align:center;padding:7px 12px;color:#7c3aed">'+ap.ready+'</td>'+
-    '<td style="padding:7px 12px"><div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+(ap.total?Math.round(ap.closed/ap.total*100):0)+'%"></div></div></td>'+
-  '</tr>';
+  var ttr=document.createElement('tr');
+  ttr.style.cssText='background:#f1f5f9;font-weight:700';
+  var apPct=ap.total?Math.round(ap.closed/ap.total*100):0;
+  var totalDefs=[
+    {text:'Total',align:'left',color:'#334155'},
+    {text:ap.total,align:'center',color:'#334155'},
+    {text:ap.closed,align:'center',color:'#16a34a'},
+    {text:ap.active,align:'center',color:'#2563eb'},
+    {text:ap.newCount,align:'center',color:'#475569'},
+    {text:ap.ready,align:'center',color:'#7c3aed'},
+    {text:'bar',align:'center',color:''}
+  ];
+  totalDefs.forEach(function(d,i){
+    var td=document.createElement('td');
+    td.style.cssText='padding:7px 12px;text-align:'+d.align+';color:'+d.color;
+    if(i===6){td.innerHTML='<div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:80px"><div style="height:100%;background:#123015;border-radius:2px;width:'+apPct+'%"></div></div>';}
+    else{td.textContent=d.text;}
+    ttr.appendChild(td);
+  });
+  tbody.appendChild(ttr);
 
-  return '<div style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:10px">'+
-    '<table style="width:100%;border-collapse:collapse">'+
-    '<thead><tr style="background:#f1f5f9"><th style="text-align:left;padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Iteration</th>'+
-    '<th style="text-align:center;padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Total</th>'+
-    '<th style="text-align:center;padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#16a34a">Closed</th>'+
-    '<th style="text-align:center;padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#2563eb">Active</th>'+
-    '<th style="text-align:center;padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">New</th>'+
-    '<th style="text-align:center;padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed">Ready</th>'+
-    '<th style="padding:6px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">Progress</th>'+
-    '</tr></thead>'+
-    '<tbody>'+rows+rows_end+'</tbody></table></div>';
+  // Verification row
+  var vtr=document.createElement('tr');
+  vtr.style.cssText='background:#f8fafc';
+  var vtd=document.createElement('td');
+  vtd.colSpan=7;
+  vtd.style.cssText='padding:6px 12px;font-size:9px;color:#64748b';
+  var verified=(ap.closed+ap.active+ap.newCount+ap.ready)===ap.total;
+  vtd.innerHTML='<span style="font-weight:700">Verification:</span> '+ap.total+' = '+ap.closed+' closed + '+ap.active+' active + '+ap.newCount+' new + '+ap.ready+' ready &nbsp;<span style="color:'+(verified?'#16a34a':'#ef4444')+';font-weight:700">'+(verified?'✓ Verified':'⚠ Mismatch')+'</span>';
+  vtr.appendChild(vtd);
+  tbody.appendChild(vtr);
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  return wrap.outerHTML;
 }
+
 
 function renderLiveCard(data,conn,cat,cardId,mode){
   var connColors={'tr-tax':'#123015','tr-default':'#1e40af'};
